@@ -3,6 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { Eye, EyeOff, UserPlus } from "lucide-react";
 import AuthShell, { authField, authLabel } from "../../components/AuthShell";
 import { Button } from "../../components/ui";
+import { supabase } from "../../lib/supabaseClient";
 
 export default function Register() {
   const nav = useNavigate();
@@ -12,31 +13,58 @@ export default function Register() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const passwordMismatch = confirmPassword.length > 0 && password !== confirmPassword;
+  const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   return (
     <AuthShell title="Create an account" subtitle="Register to submit requests and track your quotes online.">
       <form
-        onSubmit={(e) => { e.preventDefault(); nav("/verify"); }}
+        onSubmit={(e) => {
+          e.preventDefault();
+          const formData = new FormData(e.currentTarget);
+          const email = String(formData.get("email") ?? "");
+          setError("");
+          setIsSubmitting(true);
+          void supabase.auth.signUp({
+            email,
+            password,
+            options: {
+              emailRedirectTo: `${window.location.origin}/verify`,
+              data: {
+                first_name: formData.get("firstName"),
+                last_name: formData.get("lastName"),
+                company: formData.get("company"),
+              },
+            },
+          }).then(({ error: signUpError }) => {
+            if (signUpError) {
+              setError(signUpError.message);
+              return;
+            }
+            nav("/verify", { state: { email } });
+          }).finally(() => setIsSubmitting(false));
+        }}
         onInput={(e) => setIsFormComplete(e.currentTarget.checkValidity())}
         className="space-y-5"
       >
         <div className="grid gap-5 sm:grid-cols-2">
           <div>
             <label className={authLabel}>First name</label>
-            <input required className={authField} placeholder="Thabo" />
+            <input name="firstName" required className={authField} placeholder="Thabo" />
           </div>
           <div>
             <label className={authLabel}>Last name</label>
-            <input required className={authField} placeholder="Molefe" />
+            <input name="lastName" required className={authField} placeholder="Molefe" />
           </div>
         </div>
         <div>
           <label className={authLabel}>Company</label>
-          <input required className={authField} placeholder="Waterberg Mining Co." />
+          <input name="company" required className={authField} placeholder="Waterberg Mining Co." />
         </div>
         <div>
           <label className={authLabel}>Work email</label>
-          <input type="email" required className={authField} placeholder="you@company.co.za" />
+          <input name="email" type="email" required className={authField} placeholder="you@company.co.za" />
         </div>
+        {error && <p role="alert" className="text-sm text-rose-600">{error}</p>}
         <div className="grid gap-5 sm:grid-cols-2">
           <div>
             <label className={authLabel}>Password</label>
@@ -91,8 +119,8 @@ export default function Register() {
           />
           I agree to the Terms of Service and Privacy Policy.
         </label>
-        <Button type="submit" variant="primary" size="lg" full disabled={!isFormComplete || passwordMismatch}>
-          Create Account <UserPlus className="h-4 w-4" />
+        <Button type="submit" variant="primary" size="lg" full disabled={!isFormComplete || passwordMismatch || isSubmitting}>
+          {isSubmitting ? "Creating account..." : "Create Account"} {!isSubmitting && <UserPlus className="h-4 w-4" />}
         </Button>
         <p className="text-center text-sm text-slate-ink">
           Already registered?{" "}

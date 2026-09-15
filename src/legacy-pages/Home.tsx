@@ -179,6 +179,7 @@ export default function Home() {
             </div>
             <div className="flex flex-col gap-3 sm:flex-row md:justify-end">
               <Button to="/contact" variant="gold" size="lg" className="hover:scale-[1.04]">Submit RFQ</Button>
+              <Button to="/login" size="lg" className="bg-white/10 text-white ring-1 ring-white/20 hover:bg-white/15 hover:scale-[1.04]">Get Started</Button>
             </div>
           </div>
         </div>

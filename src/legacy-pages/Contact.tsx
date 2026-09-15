@@ -129,9 +129,6 @@ export default function Contact() {
                   </li>
                 ))}
               </ul>
-              <p className="font-mono mt-6 border-t border-white/10 pt-5 text-[11px] uppercase tracking-wider text-white/40">
-                Reg. No. {company.reg}
-              </p>
             </div>
             {/* map placeholder */}
             <div className="relative h-64 overflow-hidden rounded-3xl border border-hairline bg-mist">

@@ -21,7 +21,7 @@ export function Logo({
           MUMUS PROPERTYS
         </span>
         <span className={`font-mono block text-[9px] uppercase tracking-[0.2em] ${sub}`}>
-          Pty Ltd · Reg 2026/229589/07
+          Pty Ltd
         </span>
       </span>
     </Link>

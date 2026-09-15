@@ -3,24 +3,38 @@ import { useNavigate, Link } from "react-router-dom";
 import { Eye, EyeOff, LogIn } from "lucide-react";
 import AuthShell, { authField, authLabel } from "../../components/AuthShell";
 import { Button } from "../../components/ui";
+import { supabase } from "../../lib/supabaseClient";
 
 export default function Login() {
   const nav = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [isFormComplete, setIsFormComplete] = useState(false);
+  const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   return (
     <AuthShell title="Login" subtitle="Sign in to access your requests, quotes and projects.">
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          nav("/portal");
+          const formData = new FormData(e.currentTarget);
+          const email = String(formData.get("email") ?? "");
+          const password = String(formData.get("password") ?? "");
+          setError("");
+          setIsSubmitting(true);
+          void supabase.auth.signInWithPassword({ email, password }).then(({ error: signInError }) => {
+            if (signInError) {
+              setError(signInError.message === "Email not confirmed" ? "Please verify your email before signing in." : signInError.message);
+              return;
+            }
+            nav("/portal");
+          }).finally(() => setIsSubmitting(false));
         }}
         onInput={(e) => setIsFormComplete(e.currentTarget.checkValidity())}
         className="space-y-5"
       >
         <div>
           <label className={authLabel}>Email address</label>
-          <input type="email" required defaultValue="" className={authField} placeholder="you@company.co.za" />
+          <input name="email" type="email" required defaultValue="" className={authField} placeholder="you@company.co.za" />
         </div>
         <div>
           <label className={authLabel}>Password</label>
@@ -28,6 +42,7 @@ export default function Login() {
             <input
               type={showPassword ? "text" : "password"}
               required
+              name="password"
               defaultValue=""
               className={`${authField} pr-11`}
               placeholder="Enter your password"
@@ -42,14 +57,15 @@ export default function Login() {
             </button>
           </div>
         </div>
+        {error && <p role="alert" className="text-sm text-rose-600">{error}</p>}
         <div className="flex items-center justify-between text-sm">
           <label className="flex cursor-pointer items-center gap-2 text-slate-ink">
             <input type="checkbox" className="h-4 w-4 rounded border-hairline accent-navy-900" /> Remember me
           </label>
           <Link to="/forgot" className="font-semibold text-navy-900 hover:text-gold-500">Forgot password?</Link>
         </div>
-        <Button type="submit" variant="primary" size="lg" full disabled={!isFormComplete}>
-          Sign In <LogIn className="h-4 w-4" />
+        <Button type="submit" variant="primary" size="lg" full disabled={!isFormComplete || isSubmitting}>
+          {isSubmitting ? "Signing in..." : "Sign In"} {!isSubmitting && <LogIn className="h-4 w-4" />}
         </Button>
         <p className="text-center text-sm text-slate-ink">
           Don't have an account?{" "}

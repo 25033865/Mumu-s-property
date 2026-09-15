@@ -11,6 +11,7 @@ import Contact from "./legacy-pages/Contact";
 import Login from "./legacy-pages/auth/Login";
 import Register from "./legacy-pages/auth/Register";
 import Forgot from "./legacy-pages/auth/Forgot";
+import ResetPassword from "./legacy-pages/auth/ResetPassword";
 import Verify from "./legacy-pages/auth/Verify";
 import Dashboard from "./legacy-pages/portal/Dashboard";
 import NewRequest from "./legacy-pages/portal/NewRequest";
@@ -44,6 +45,7 @@ export const routeConfig = [
   { path: "/login", Component: Login },
   { path: "/register", Component: Register },
   { path: "/forgot", Component: Forgot },
+  { path: "/reset-password", Component: ResetPassword },
   { path: "/verify", Component: Verify },
   {
     path: "/portal",

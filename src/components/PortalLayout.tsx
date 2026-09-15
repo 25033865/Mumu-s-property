@@ -5,8 +5,8 @@ import {
   FileText, MessageSquare, Bell, LogOut, Menu, X, Search,
 } from "lucide-react";
 import { Logo } from "./ui";
-import ViewSwitcher from "./ViewSwitcher";
 import { client } from "../portalData";
+import { supabase } from "../lib/supabaseClient";
 
 const nav: { to: string; label: string; icon: typeof LayoutDashboard; end?: boolean; disabled?: boolean }[] = [
   { to: "/portal", label: "Dashboard Overview", icon: LayoutDashboard, end: true },
@@ -20,9 +20,26 @@ const nav: { to: string; label: string; icon: typeof LayoutDashboard; end?: bool
 
 export default function PortalLayout() {
   const [open, setOpen] = useState(false);
+  const [authChecking, setAuthChecking] = useState(true);
   const loc = useLocation();
   const nav2 = useNavigate();
   useEffect(() => setOpen(false), [loc.pathname]);
+  useEffect(() => {
+    let active = true;
+    void supabase.auth.getUser().then(({ data }) => {
+      if (!data.user?.email_confirmed_at) nav2("/login", { replace: true });
+      else if (active) setAuthChecking(false);
+    });
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session?.user.email_confirmed_at) nav2("/login", { replace: true });
+    });
+    return () => {
+      active = false;
+      listener.subscription.unsubscribe();
+    };
+  }, [nav2]);
+
+  if (authChecking) return <div className="grid min-h-screen place-items-center bg-mist text-sm text-slate-ink">Checking your account...</div>;
 
   return (
     <div className="flex min-h-full bg-mist">
@@ -60,7 +77,7 @@ export default function PortalLayout() {
         </nav>
         <div className="border-t border-white/10 p-4">
           <button
-            onClick={() => nav2("/login")}
+            onClick={() => { void supabase.auth.signOut().then(() => nav2("/login")); }}
             className="flex w-full items-center gap-3 rounded-lg px-3.5 py-2.5 text-sm font-medium text-white/60 transition-colors hover:bg-rose-500/15 hover:text-rose-200"
           >
             <LogOut className="h-[18px] w-[18px]" /> Logout
@@ -96,7 +113,6 @@ export default function PortalLayout() {
           <Outlet />
         </main>
       </div>
-      <ViewSwitcher />
     </div>
   );
 }

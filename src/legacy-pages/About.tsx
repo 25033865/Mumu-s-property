@@ -24,9 +24,8 @@ export default function About() {
             </h2>
             <div className="mt-6 space-y-4 text-slate-ink">
               <p>
-                MUMUS PROPERTYS (PTY) LTD, registered as company{" "}
-                <span className="font-mono text-navy-900">{company.reg}</span>, is a proudly South African supplier of
-                industrial goods and services. We source and deliver PPE, engineering and mining consumables, pumps,
+                MUMUS PROPERTYS (PTY) LTD is a proudly South African supplier of industrial goods and services. We
+                source and deliver PPE, engineering and mining consumables, pumps,
                 valves, electric motors, electrical supplies, insulation materials and contractor accommodation.
               </p>
               <p>

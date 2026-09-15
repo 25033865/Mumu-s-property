@@ -14,7 +14,6 @@ import {
   MapPin,
 } from "lucide-react";
 import { Logo, Button } from "./ui";
-import ViewSwitcher from "./ViewSwitcher";
 import { company } from "../data";
 
 const nav = [
@@ -117,7 +116,6 @@ export default function PublicLayout() {
       </main>
 
       <Footer />
-      <ViewSwitcher />
     </div>
   );
 }
@@ -131,12 +129,9 @@ function Footer() {
           <p className="mt-5 max-w-xs text-sm leading-relaxed text-white/55">
             {company.slogan}. A South African supplier of industrial supplies, PPE, engineering consumables, equipment and accommodation solutions.
           </p>
-          <p className="mt-5 font-mono text-[11px] uppercase tracking-wider text-white/35">
-            Reg. No. {company.reg}
-          </p>
         </div>
         <FooterCol title="Explore" links={[["About Us", "/about"], ["Core Offerings", "/offerings"], ["Target Industries", "/industries"], ["Supplier Categories", "/suppliers"]]} />
-        <FooterCol title="Access" links={[["HSE & Quality", "/hse"], ["Client Portal", "/portal"], ["Admin Suite", "/admin"], ["Submit RFQ", "/contact"]]} />
+        <FooterCol title="Access" links={[["HSE & Quality", "/hse"], ["Submit RFQ", "/contact"]]} />
         <div>
           <h4 className="font-mono text-[12px] uppercase tracking-[0.2em] text-gold-400">Get in touch</h4>
           <ul className="mt-5 space-y-3 text-sm text-white/60">

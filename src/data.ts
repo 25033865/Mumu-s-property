@@ -45,7 +45,6 @@ export const company = {
   address: "Lephalale, Limpopo, South Africa",
   phone: "076 739 0661",
   email: "muanomamphogoro@gmail.com",
-  reg: "2026/229589/07",
 };
 
 export const procurement = ["Glencore", "Anglo American", "Seriti"];
