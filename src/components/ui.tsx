@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "react-router-dom";
 import type { ReactNode } from "react";
 import logoMark from "@/imports/PHOTO-2026-09-11-16-12-37.jpg";
 
@@ -12,7 +12,7 @@ export function Logo({
   const text = variant === "light" ? "text-white" : "text-navy-900";
   const sub = variant === "light" ? "text-white/50" : "text-slate-ink/70";
   return (
-    <Link href="/" className={`group flex items-center gap-3 ${className}`}>
+    <Link to="/" className={`group flex items-center gap-3 ${className}`}>
       <span className="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-lg bg-white shadow-sm ring-1 ring-navy-900/10">
         <img src={logoMark.src} alt="MUMUS PROPERTYS logo" className="h-full w-full object-cover" />
       </span>
@@ -37,6 +37,7 @@ type BtnProps = {
   className?: string;
   type?: "button" | "submit";
   full?: boolean;
+  disabled?: boolean;
 };
 
 export function Button({
@@ -48,6 +49,7 @@ export function Button({
   className = "",
   type = "button",
   full,
+  disabled = false,
 }: BtnProps) {
   const sizes = {
     sm: "h-9 px-4 text-[13px]",
@@ -61,13 +63,13 @@ export function Button({
     ghost: "text-navy-900 hover:bg-navy-900/5",
     outline: "border border-navy-900/20 text-navy-900 hover:border-navy-900 hover:bg-navy-900/5",
   };
-  const cls = `inline-flex items-center justify-center gap-2 rounded-lg font-semibold tracking-tight transition-all duration-200 active:scale-[.98] ${sizes[size]} ${variants[variant]} ${full ? "w-full" : ""} ${className}`;
+  const cls = `inline-flex items-center justify-center gap-2 rounded-lg font-semibold tracking-tight transition-all duration-200 active:scale-[.98] disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 disabled:shadow-none ${sizes[size]} ${variants[variant]} ${full ? "w-full" : ""} ${className}`;
   if (to) return (
-    <Link href={to} className={cls} onClick={onClick}>
+    <Link to={to} className={cls} onClick={onClick}>
       {children}
     </Link>
   );
-  return <button type={type} onClick={onClick} className={cls}>{children}</button>;
+  return <button type={type} onClick={onClick} disabled={disabled} className={cls}>{children}</button>;
 }
 
 export function Eyebrow({ children, light }: { children: ReactNode; light?: boolean }) {

@@ -12,12 +12,10 @@ import {
   Phone,
   Mail,
   MapPin,
-  Clock,
-  BadgeCheck,
 } from "lucide-react";
 import { Logo, Button } from "./ui";
 import ViewSwitcher from "./ViewSwitcher";
-import { company, procurement } from "../data";
+import { company } from "../data";
 
 const nav = [
   { to: "/", label: "Home", end: true },
@@ -48,25 +46,6 @@ export default function PublicLayout() {
 
   return (
     <div className="min-h-full bg-white">
-      {/* top utility bar */}
-      <div className="hidden bg-navy-950 text-white/70 lg:block">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-2 text-[12px]">
-          <div className="flex items-center gap-5 font-mono">
-            <span className="flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5 text-gold-400" /> {company.address}</span>
-            <span className="flex items-center gap-1.5"><Phone className="h-3.5 w-3.5 text-gold-400" /> {company.phone}</span>
-            <span className="flex items-center gap-1.5"><Clock className="h-3.5 w-3.5 text-gold-400" /> 24/7 Mining Support</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="font-mono text-[10px] uppercase tracking-wider text-white/40">Procurement Alignment:</span>
-            {procurement.map((p) => (
-              <span key={p} className="font-mono inline-flex items-center gap-1 rounded-full bg-white/5 px-2 py-0.5 text-[10px] text-gold-300 ring-1 ring-white/10">
-                <BadgeCheck className="h-3 w-3" /> {p}
-              </span>
-            ))}
-          </div>
-        </div>
-      </div>
-
       {/* main nav */}
       <header
         className={`sticky top-0 z-50 transition-all duration-300 ${
@@ -97,8 +76,8 @@ export default function PublicLayout() {
             ))}
           </nav>
           <div className="flex items-center gap-2">
-            <Button to="/portal" variant="gold" size="sm" className="hidden sm:inline-flex">
-              Client Portal <ArrowRight className="h-4 w-4" />
+            <Button to="/login" variant="gold" size="sm" className="hidden scale-100 transition-transform hover:scale-[1.03] sm:inline-flex">
+              Sign Up <ArrowRight className="h-4 w-4" />
             </Button>
             <button
               onClick={() => setOpen((o) => !o)}
@@ -125,7 +104,7 @@ export default function PublicLayout() {
                 </NavLink>
               ))}
               <div className="mt-3 flex flex-col gap-2">
-                <Button to="/portal" variant="gold" full>Client Portal</Button>
+                <Button to="/login" variant="gold" full>Sign Up</Button>
                 <Button to="/contact" variant="outline" full>Submit RFQ</Button>
               </div>
             </div>

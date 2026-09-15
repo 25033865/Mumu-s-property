@@ -26,8 +26,8 @@ export default function Home() {
               Empowering South Africa's mining, engineering, construction and commercial sectors with complete industrial supplies, equipment, PPE and contractor accommodation solutions.
             </p>
             <div className="mt-9 flex flex-wrap items-center gap-3">
-              <Button to="/contact" variant="gold" size="lg">Submit RFQ <ArrowRight className="h-5 w-5" /></Button>
-              <Button to="/portal" size="lg" className="bg-white/10 text-white ring-1 ring-white/20 hover:bg-white/15">Access Client Portal</Button>
+              <Button to="/contact" variant="gold" size="lg" className="hover:scale-[1.04] active:scale-[1.04]">Submit RFQ <ArrowRight className="h-5 w-5" /></Button>
+              <Button to="/login" size="lg" className="bg-white/10 text-white ring-1 ring-white/20 hover:bg-white/15 hover:scale-[1.04] active:scale-[1.04]">Sign Up</Button>
             </div>
             <div className="mt-12 grid max-w-lg grid-cols-2 gap-x-8 gap-y-5 border-t border-white/10 pt-8 sm:grid-cols-4">
               {stats.map((s) => (
@@ -121,7 +121,7 @@ export default function Home() {
           </div>
           <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
             {industries.map((ind) => (
-              <div key={ind.title} className="group rounded-2xl border border-hairline bg-white p-6 transition-all hover:border-navy-900/20 hover:shadow-lg">
+              <div key={ind.title} className="group rounded-2xl border border-hairline bg-white p-6 transition-all duration-200 hover:-translate-y-1 hover:scale-[1.02] hover:border-navy-900/20 hover:shadow-lg">
                 <span className="grid h-12 w-12 place-items-center rounded-xl bg-navy-900 text-gold-400 transition-colors group-hover:bg-navy-800">
                   <ind.icon className="h-6 w-6" />
                 </span>
@@ -143,7 +143,7 @@ export default function Home() {
         </div>
         <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {advantages.map((a) => (
-            <div key={a.title} className="rounded-2xl border border-hairline bg-white p-7 transition-all hover:shadow-lg">
+            <div key={a.title} className="rounded-2xl border border-hairline bg-white p-7 transition-all duration-200 hover:-translate-y-1 hover:scale-[1.02] hover:shadow-lg">
               <span className="grid h-12 w-12 place-items-center rounded-xl bg-gold-100 text-gold-500">
                 <a.icon className="h-6 w-6" />
               </span>
@@ -151,11 +151,11 @@ export default function Home() {
               <p className="mt-2 text-sm leading-relaxed text-slate-ink">{a.desc}</p>
             </div>
           ))}
-          <div className="flex flex-col justify-center rounded-2xl bg-navy-900 p-7 text-white">
+          <div className="flex flex-col justify-center rounded-2xl bg-navy-900 p-7 text-white transition-all duration-200 hover:-translate-y-1 hover:scale-[1.02] hover:shadow-lg">
             <Boxes className="h-8 w-8 text-gold-400" />
             <p className="mt-4 text-lg font-semibold leading-snug">One supplier. Every category.</p>
             <p className="mt-2 text-sm text-white/60">PPE, consumables, equipment and materials — sourced, quoted and delivered.</p>
-            <div className="mt-5"><Button to="/contact" variant="gold" size="sm">Submit RFQ <ArrowRight className="h-4 w-4" /></Button></div>
+            <div className="mt-5"><Button to="/contact" variant="gold" size="sm" className="hover:scale-[1.04]">Submit RFQ <ArrowRight className="h-4 w-4" /></Button></div>
           </div>
         </div>
       </Section>
@@ -178,8 +178,7 @@ export default function Home() {
               </ul>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row md:justify-end">
-              <Button to="/contact" variant="gold" size="lg">Submit RFQ</Button>
-              <Button to="/portal" size="lg" className="bg-white/10 text-white ring-1 ring-white/20 hover:bg-white/15">Client Portal</Button>
+              <Button to="/contact" variant="gold" size="lg" className="hover:scale-[1.04]">Submit RFQ</Button>
             </div>
           </div>
         </div>
