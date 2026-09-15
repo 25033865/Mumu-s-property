@@ -1,0 +1,46 @@
+node_modules/
+.next/
+dist/
+build/
+.cache/
+.env*
+!.env.example
+.vite/
+vite.config.*.timestamp-*
+*.tsbuildinfo
+*-debug.log*
+logs/
+*.log
+coverage/
+.nyc_output/
+.claude-replay.*
+.tmp-*
+/.figma/design-context/
+/.figma/make/
+
+# Local operating-system and editor files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Private certificates and keys
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Platform-managed agentplat state, not project source. In the
+# client-initiated single-repo workspace layout (make's `Path: "."` spec) the
+# repo root IS the workspace root, so these land inside this repo rather than
+# beside it.
+/.plugins/
+/.opencode-skills/
+
+# Local AI assistant instructions
+/AGENTS.md
+/CLAUDE.md
+
+# Local reference uploads (not required to build the app)
+/src/imports/Document__30__copy.pdf
+/src/imports/pasted_text/*.md
