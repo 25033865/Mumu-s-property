@@ -76,10 +76,26 @@ create table if not exists public.service_request_files (
   created_at timestamptz not null default now()
 );
 
+create sequence if not exists public.quote_reference_seq start 1200;
+
+create table if not exists public.quotes (
+  id uuid primary key default gen_random_uuid(),
+  reference text unique not null default ('QT-' || lpad(nextval('public.quote_reference_seq')::text, 4, '0')),
+  request_id uuid not null references public.service_requests(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  amount numeric(12, 2) not null check (amount >= 0),
+  valid_until date,
+  notes text,
+  status text not null check (status in ('Awaiting approval', 'Approved', 'Declined')) default 'Awaiting approval',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 alter table public.companies enable row level security;
 alter table public.profiles enable row level security;
 alter table public.service_requests enable row level security;
 alter table public.service_request_files enable row level security;
+alter table public.quotes enable row level security;
 
 drop policy if exists "Users can read their company" on public.companies;
 create policy "Users can read their company"
@@ -111,6 +127,57 @@ create policy "Admins can update all requests"
   on public.service_requests for update to authenticated
   using (exists (select 1 from public.user_roles where user_id = auth.uid() and role = 'admin'))
   with check (exists (select 1 from public.user_roles where user_id = auth.uid() and role = 'admin'));
+
+drop policy if exists "Clients can read their quotes" on public.quotes;
+create policy "Clients can read their quotes"
+  on public.quotes for select to authenticated
+  using (user_id = auth.uid());
+
+drop policy if exists "Admins can read all quotes" on public.quotes;
+create policy "Admins can read all quotes"
+  on public.quotes for select to authenticated
+  using (exists (select 1 from public.user_roles where user_id = auth.uid() and role = 'admin'));
+
+drop policy if exists "Admins can create quotes" on public.quotes;
+create policy "Admins can create quotes"
+  on public.quotes for insert to authenticated
+  with check (exists (select 1 from public.user_roles where user_id = auth.uid() and role = 'admin'));
+
+drop policy if exists "Clients can update their quote decisions" on public.quotes;
+
+create or replace function public.respond_to_quote(
+  p_quote_id uuid,
+  p_status text
+)
+returns public.quotes
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  updated_quote public.quotes;
+begin
+  if p_status not in ('Approved', 'Declined') then
+    raise exception 'Invalid quote response';
+  end if;
+
+  update public.quotes
+  set status = p_status,
+      updated_at = now()
+  where id = p_quote_id
+    and user_id = auth.uid()
+    and status = 'Awaiting approval'
+  returning * into updated_quote;
+
+  if updated_quote.id is null then
+    raise exception 'Quote not found or already decided';
+  end if;
+
+  return updated_quote;
+end;
+$$;
+
+grant execute on function public.respond_to_quote(uuid, text) to authenticated;
 
 drop policy if exists "Users can create files for their requests" on public.service_request_files;
 create policy "Users can create files for their requests"
