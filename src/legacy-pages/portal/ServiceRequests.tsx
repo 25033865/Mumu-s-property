@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FilePlus2, Search } from "lucide-react";
 import { Badge, Button } from "../../components/ui";
 import { requests, statusOrder, statusTone, type Status } from "../../portalData";
+import { supabase } from "../../lib/supabaseClient";
 
 const filters = ["All", ...statusOrder];
 const urgencyTone: Record<string, "gray" | "amber" | "red"> = { Low: "gray", Medium: "amber", High: "red" };
@@ -9,7 +10,19 @@ const urgencyTone: Record<string, "gray" | "amber" | "red"> = { Low: "gray", Med
 export default function ServiceRequests() {
   const [f, setF] = useState("All");
   const [q, setQ] = useState("");
-  const rows = requests.filter(
+  const [rows, setRows] = useState<typeof requests>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    void supabase.from("service_requests").select("reference, category, location, required_by, urgency, status").order("created_at", { ascending: false }).then(({ data, error: queryError }) => {
+      if (queryError) setError(queryError.message);
+      else setRows((data ?? []).map((r) => ({ id: r.reference, service: r.category, location: r.location, date: r.required_by ?? "Not specified", urgency: r.urgency, status: r.status as Status })));
+      setLoading(false);
+    });
+  }, []);
+
+  const filteredRows = rows.filter(
     (r) => (f === "All" || r.status === f) && (r.service.toLowerCase().includes(q.toLowerCase()) || r.id.toLowerCase().includes(q.toLowerCase())),
   );
 
@@ -55,7 +68,9 @@ export default function ServiceRequests() {
               </tr>
             </thead>
             <tbody className="divide-y divide-hairline">
-              {rows.map((r) => (
+              {loading && <tr><td colSpan={6} className="px-5 py-12 text-center text-slate-ink">Loading requests...</td></tr>}
+              {!loading && error && <tr><td colSpan={6} className="px-5 py-12 text-center text-rose-600">{error}</td></tr>}
+              {!loading && !error && filteredRows.map((r) => (
                 <tr key={r.id} className="transition-colors hover:bg-mist">
                   <td className="font-mono px-5 py-4 font-medium text-navy-900">{r.id}</td>
                   <td className="px-5 py-4 font-medium text-navy-900">{r.service}</td>
@@ -65,7 +80,7 @@ export default function ServiceRequests() {
                   <td className="px-5 py-4"><Badge tone={statusTone[r.status as Status]}>{r.status}</Badge></td>
                 </tr>
               ))}
-              {rows.length === 0 && (
+              {!loading && !error && filteredRows.length === 0 && (
                 <tr><td colSpan={6} className="px-5 py-12 text-center text-slate-ink">No requests match your filters.</td></tr>
               )}
             </tbody>

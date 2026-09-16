@@ -11,10 +11,18 @@ export const authLabel = "font-mono mb-1.5 block text-[11px] font-medium upperca
 export default function AuthShell({
   title,
   subtitle,
+  eyebrow = "Client Portal",
+  heroTitle = "Manage requests, quotes and projects in one place.",
+  indicators = trustIndicators,
+  securityText = "Secure, encrypted client access",
   children,
 }: {
   title: string;
   subtitle: string;
+  eyebrow?: string;
+  heroTitle?: string;
+  indicators?: string[];
+  securityText?: string;
   children: ReactNode;
 }) {
   return (
@@ -26,12 +34,12 @@ export default function AuthShell({
         <div className="relative flex h-full flex-col">
           <Logo variant="light" />
           <div className="my-auto max-w-md">
-            <span className="eyebrow text-gold-300">Client Portal</span>
+            <span className="eyebrow text-gold-300">{eyebrow}</span>
             <h2 className="font-display mt-4 text-4xl font-extrabold leading-tight">
-              Manage requests, quotes and projects in one place.
+              {heroTitle}
             </h2>
             <div className="mt-8 space-y-3">
-              {trustIndicators.map((t) => (
+              {indicators.map((t) => (
                 <div key={t} className="flex items-center gap-3 text-white/70">
                   <CheckCircle2 className="h-5 w-5 shrink-0 text-gold-400" />
                   <span className="text-sm">{t}</span>
@@ -40,7 +48,7 @@ export default function AuthShell({
             </div>
           </div>
           <div className="relative flex items-center gap-2 text-[12px] text-white/45">
-            <ShieldCheck className="h-4 w-4 text-gold-400" /> Secure, encrypted client access
+            <ShieldCheck className="h-4 w-4 text-gold-400" /> {securityText}
           </div>
         </div>
       </div>

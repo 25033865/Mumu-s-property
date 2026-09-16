@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Eye, EyeOff, LogIn } from "lucide-react";
+import { Eye, EyeOff, LogIn, ShieldCheck } from "lucide-react";
 import AuthShell, { authField, authLabel } from "../../components/AuthShell";
 import { Button } from "../../components/ui";
 import { supabase } from "../../lib/supabaseClient";
@@ -71,6 +71,12 @@ export default function Login() {
           Don't have an account?{" "}
           <Link to="/register" className="font-semibold text-navy-900 hover:text-gold-500">Create account</Link>
         </p>
+        <div className="border-t border-hairline pt-5 text-center">
+          <p className="text-xs text-slate-ink">Are you a MUMUS team member?</p>
+          <Button to="/admin-login" type="button" variant="outline" size="md" full className="mt-3">
+            <ShieldCheck className="h-4 w-4" /> Admin Login
+          </Button>
+        </div>
       </form>
     </AuthShell>
   );

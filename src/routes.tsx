@@ -9,6 +9,7 @@ import Hse from "./legacy-pages/Hse";
 import Suppliers from "./legacy-pages/Suppliers";
 import Contact from "./legacy-pages/Contact";
 import Login from "./legacy-pages/auth/Login";
+import AdminLogin from "./legacy-pages/auth/AdminLogin";
 import Register from "./legacy-pages/auth/Register";
 import Forgot from "./legacy-pages/auth/Forgot";
 import ResetPassword from "./legacy-pages/auth/ResetPassword";
@@ -43,6 +44,7 @@ export const routeConfig = [
     ],
   },
   { path: "/login", Component: Login },
+  { path: "/admin-login", Component: AdminLogin },
   { path: "/register", Component: Register },
   { path: "/forgot", Component: Forgot },
   { path: "/reset-password", Component: ResetPassword },

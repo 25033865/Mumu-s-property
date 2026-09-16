@@ -11,7 +11,7 @@ import {
   MessageSquare, BarChart3, LogOut, Menu, X, Search, ShieldCheck,
 } from "lucide-react";
 import { Logo } from "./ui";
-import { supabase } from "../lib/supabaseClient";
+import { getCurrentUserRole, supabase } from "../lib/supabaseClient";
 
 const nav = [
   { to: "/admin", label: "Overview", icon: LayoutGrid, end: true },
@@ -32,12 +32,20 @@ export default function AdminLayout() {
   useEffect(() => setOpen(false), [loc.pathname]);
   useEffect(() => {
     let active = true;
-    void supabase.auth.getUser().then(({ data }) => {
-      if (!data.user?.email_confirmed_at) nav2("/login", { replace: true });
-      else if (active) setAuthChecking(false);
+    void supabase.auth.getUser().then(async ({ data }) => {
+      if (!data.user?.email_confirmed_at) {
+        nav2("/admin-login", { replace: true });
+        return;
+      }
+      const { role } = await getCurrentUserRole();
+      if (role !== "admin") {
+        nav2("/admin-login", { replace: true });
+        return;
+      }
+      if (active) setAuthChecking(false);
     });
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session?.user.email_confirmed_at) nav2("/login", { replace: true });
+      if (!session?.user.email_confirmed_at) nav2("/admin-login", { replace: true });
     });
     return () => {
       active = false;
@@ -80,7 +88,7 @@ export default function AdminLayout() {
           ))}
         </nav>
         <div className="border-t border-white/10 p-3">
-          <button onClick={() => { void supabase.auth.signOut().then(() => nav2("/login")); }} className="flex w-full items-center gap-3 rounded-lg px-3.5 py-2.5 text-sm font-medium text-white/60 hover:bg-rose-500/15 hover:text-rose-200">
+          <button onClick={() => { void supabase.auth.signOut().then(() => nav2("/admin-login")); }} className="flex w-full items-center gap-3 rounded-lg px-3.5 py-2.5 text-sm font-medium text-white/60 hover:bg-rose-500/15 hover:text-rose-200">
             <LogOut className="h-[18px] w-[18px]" /> Sign out
           </button>
         </div>
