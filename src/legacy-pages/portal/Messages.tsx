@@ -1,8 +1,23 @@
 import { Headset, Circle } from "lucide-react";
 import Chat from "../../components/Chat";
-import { CLIENT_THREAD_ID, ADMIN_NAME } from "../../messaging";
+import { ADMIN_NAME, markThreadRead } from "../../messaging";
+import { useEffect, useState } from "react";
+import { supabase } from "../../lib/supabaseClient";
 
 export default function Messages() {
+  const [threadId, setThreadId] = useState<string | null>(null);
+  useEffect(() => {
+    void supabase.auth.getUser().then(async ({ data }) => {
+      if (!data.user) return;
+      const existing = await supabase.from("message_threads").select("id").eq("client_id", data.user.id).maybeSingle();
+      if (existing.data) setThreadId(existing.data.id);
+      else {
+        const created = await supabase.from("message_threads").insert({ client_id: data.user.id }).select("id").single();
+        setThreadId(created.data?.id ?? null);
+      }
+    });
+  }, []);
+  useEffect(() => { if (threadId) void markThreadRead(threadId); }, [threadId]);
   return (
     <div className="space-y-6">
       <div>
@@ -22,7 +37,7 @@ export default function Messages() {
             </div>
           </div>
         </div>
-        <Chat threadId={CLIENT_THREAD_ID} self="client" theme="light" placeholder="Message the MUMUS team…" />
+        {threadId ? <Chat threadId={threadId} self="client" theme="light" placeholder="Message the MUMUS team…" /> : <div className="grid flex-1 place-items-center text-sm text-slate-ink/60">Loading conversation...</div>}
       </div>
     </div>
   );

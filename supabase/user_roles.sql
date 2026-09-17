@@ -36,6 +36,49 @@ create table if not exists public.profiles (
   updated_at timestamptz not null default now()
 );
 
+alter table public.profiles add column if not exists company_name text;
+
+create or replace function public.handle_new_user_profile()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  insert into public.profiles (user_id, first_name, last_name, company_name)
+  values (
+    new.id,
+    new.raw_user_meta_data ->> 'first_name',
+    new.raw_user_meta_data ->> 'last_name',
+    new.raw_user_meta_data ->> 'company'
+  )
+  on conflict (user_id) do update set
+    first_name = excluded.first_name,
+    last_name = excluded.last_name,
+    company_name = excluded.company_name,
+    updated_at = now();
+  return new;
+end;
+$$;
+
+drop trigger if exists on_auth_user_created_profile on auth.users;
+create trigger on_auth_user_created_profile
+  after insert or update of raw_user_meta_data on auth.users
+  for each row execute procedure public.handle_new_user_profile();
+
+insert into public.profiles (user_id, first_name, last_name, company_name)
+select
+  id,
+  raw_user_meta_data ->> 'first_name',
+  raw_user_meta_data ->> 'last_name',
+  raw_user_meta_data ->> 'company'
+from auth.users
+on conflict (user_id) do update set
+  first_name = excluded.first_name,
+  last_name = excluded.last_name,
+  company_name = excluded.company_name,
+  updated_at = now();
+
 create table if not exists public.service_requests (
   id uuid primary key default gen_random_uuid(),
   reference text unique not null default ('RFQ-' || lpad(nextval('public.service_request_reference_seq')::text, 4, '0')),
@@ -144,6 +187,26 @@ create table if not exists public.notifications (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.message_threads (
+  id uuid primary key default gen_random_uuid(),
+  client_id uuid not null unique references auth.users(id) on delete cascade,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.messages (
+  id uuid primary key default gen_random_uuid(),
+  thread_id uuid not null references public.message_threads(id) on delete cascade,
+  sender_id uuid not null references auth.users(id) on delete cascade,
+  sender_role text not null check (sender_role in ('client', 'admin')),
+  text text not null check (char_length(trim(text)) > 0),
+  updated_at timestamptz not null default now(),
+  read_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+alter table public.messages add column if not exists updated_at timestamptz not null default now();
+alter table public.messages add column if not exists read_at timestamptz;
+
 insert into public.accommodation_camps (name, capacity)
 values
   ('North Camp', 60),
@@ -160,6 +223,8 @@ alter table public.documents enable row level security;
 alter table public.accommodation_camps enable row level security;
 alter table public.accommodation_bookings enable row level security;
 alter table public.notifications enable row level security;
+alter table public.message_threads enable row level security;
+alter table public.messages enable row level security;
 
 drop policy if exists "Users can read their company" on public.companies;
 create policy "Users can read their company"
@@ -170,6 +235,11 @@ drop policy if exists "Users can read their profile" on public.profiles;
 create policy "Users can read their profile"
   on public.profiles for select to authenticated
   using (user_id = auth.uid());
+
+drop policy if exists "Admins can read client profiles" on public.profiles;
+create policy "Admins can read client profiles"
+  on public.profiles for select to authenticated
+  using (exists (select 1 from public.user_roles where user_id = auth.uid() and role = 'admin'));
 
 drop policy if exists "Clients can create their requests" on public.service_requests;
 create policy "Clients can create their requests"
@@ -325,6 +395,112 @@ end;
 $$;
 
 grant execute on function public.request_accommodation_change(uuid, text, date) to authenticated;
+
+create or replace function public.edit_message(p_message_id uuid, p_text text)
+returns public.messages
+language plpgsql security definer set search_path = public
+as $$
+declare edited_message public.messages;
+begin
+  if char_length(trim(p_text)) = 0 then raise exception 'Message cannot be empty'; end if;
+  update public.messages
+  set text = trim(p_text), updated_at = now()
+  where id = p_message_id and sender_id = auth.uid()
+    and created_at > now() - interval '5 minutes'
+  returning * into edited_message;
+  if edited_message.id is null then raise exception 'Message can no longer be edited'; end if;
+  return edited_message;
+end;
+$$;
+
+create or replace function public.delete_message(p_message_id uuid)
+returns uuid
+language plpgsql security definer set search_path = public
+as $$
+declare deleted_id uuid;
+begin
+  delete from public.messages
+  where id = p_message_id and sender_id = auth.uid()
+    and created_at > now() - interval '5 minutes'
+  returning id into deleted_id;
+  if deleted_id is null then raise exception 'Message can no longer be deleted'; end if;
+  return deleted_id;
+end;
+$$;
+
+grant execute on function public.edit_message(uuid, text) to authenticated;
+grant execute on function public.delete_message(uuid) to authenticated;
+
+drop policy if exists "Clients can read their message thread" on public.message_threads;
+create policy "Clients can read their message thread"
+  on public.message_threads for select to authenticated
+  using (client_id = auth.uid());
+
+drop policy if exists "Admins can read all message threads" on public.message_threads;
+create policy "Admins can read all message threads"
+  on public.message_threads for select to authenticated
+  using (exists (select 1 from public.user_roles where user_id = auth.uid() and role = 'admin'));
+
+drop policy if exists "Clients can create their message thread" on public.message_threads;
+create policy "Clients can create their message thread"
+  on public.message_threads for insert to authenticated
+  with check (client_id = auth.uid());
+
+drop policy if exists "Clients can read their messages" on public.messages;
+create policy "Clients can read their messages"
+  on public.messages for select to authenticated
+  using (exists (select 1 from public.message_threads where id = thread_id and client_id = auth.uid()));
+
+drop policy if exists "Admins can read all messages" on public.messages;
+create policy "Admins can read all messages"
+  on public.messages for select to authenticated
+  using (exists (select 1 from public.user_roles where user_id = auth.uid() and role = 'admin'));
+
+drop policy if exists "Authenticated users can send messages" on public.messages;
+create policy "Authenticated users can send messages"
+  on public.messages for insert to authenticated
+  with check (
+    sender_id = auth.uid()
+    and (
+      (sender_role = 'admin' and exists (select 1 from public.user_roles where user_id = auth.uid() and role = 'admin'))
+      or (sender_role = 'client' and exists (select 1 from public.message_threads where id = thread_id and client_id = auth.uid()))
+    )
+  );
+
+drop policy if exists "Users can mark visible messages read" on public.messages;
+create policy "Users can mark visible messages read"
+  on public.messages for update to authenticated
+  using (
+    (sender_role = 'admin' and exists (select 1 from public.message_threads where id = thread_id and client_id = auth.uid()))
+    or (sender_role = 'client' and exists (select 1 from public.user_roles where user_id = auth.uid() and role = 'admin'))
+  )
+  with check (read_at is not null);
+
+create or replace function public.mark_thread_read(p_thread_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  update public.messages
+  set read_at = now()
+  where thread_id = p_thread_id
+    and read_at is null
+    and (
+      (sender_role = 'admin' and exists (select 1 from public.message_threads where id = thread_id and client_id = auth.uid()))
+      or (sender_role = 'client' and exists (select 1 from public.user_roles where user_id = auth.uid() and role = 'admin'))
+    );
+end;
+$$;
+
+grant execute on function public.mark_thread_read(uuid) to authenticated;
+
+alter table public.messages replica identity full;
+do $$ begin
+  alter publication supabase_realtime add table public.messages;
+exception when duplicate_object then null;
+end $$;
 
 drop policy if exists "Clients can read their documents" on public.documents;
 create policy "Clients can read their documents"

@@ -21,9 +21,22 @@ const nav: { to: string; label: string; icon: typeof LayoutDashboard; end?: bool
 export default function PortalLayout() {
   const [open, setOpen] = useState(false);
   const [authChecking, setAuthChecking] = useState(true);
+  const [unreadMessages, setUnreadMessages] = useState(0);
   const loc = useLocation();
   const nav2 = useNavigate();
   useEffect(() => setOpen(false), [loc.pathname]);
+  useEffect(() => {
+    let active = true;
+    const loadUnread = async () => {
+      const { data } = await supabase.auth.getUser();
+      if (!data.user) return;
+      const { count } = await supabase.from("messages").select("id, message_threads!inner(client_id)", { count: "exact", head: true }).eq("sender_role", "admin").is("read_at", null).eq("message_threads.client_id", data.user.id);
+      if (active) setUnreadMessages(count ?? 0);
+    };
+    void loadUnread();
+    const channel = supabase.channel("portal-unread-messages").on("postgres_changes", { event: "*", schema: "public", table: "messages" }, () => void loadUnread()).subscribe();
+    return () => { active = false; void supabase.removeChannel(channel); };
+  }, []);
   useEffect(() => {
     let active = true;
     void supabase.auth.getUser().then(({ data }) => {
@@ -71,7 +84,8 @@ export default function PortalLayout() {
               }
             >
               <n.icon className="h-[18px] w-[18px]" />
-              {n.label}
+              <span>{n.label}</span>
+              {n.label === "Support & Messages" && unreadMessages > 0 && <span className="ml-auto rounded-full bg-gold-400 px-2 py-0.5 text-[10px] font-bold text-navy-900">{unreadMessages > 99 ? "99+" : unreadMessages}</span>}
             </NavLink>
           ))}
         </nav>

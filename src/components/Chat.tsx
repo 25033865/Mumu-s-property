@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { Send } from "lucide-react";
-import { useThread, sendMessage, formatTime, type Sender } from "../messaging";
+import { Pencil, Send, Trash2, X } from "lucide-react";
+import { canModifyMessage, deleteMessage, editMessage, useThread, sendMessage, formatTime, type Sender } from "../messaging";
+import { supabase } from "../lib/supabaseClient";
 
 export default function Chat({
   threadId,
@@ -15,6 +16,10 @@ export default function Chat({
 }) {
   const messages = useThread(threadId);
   const [draft, setDraft] = useState("");
+  const [senderId, setSenderId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingText, setEditingText] = useState("");
+  const [messageError, setMessageError] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -22,11 +27,24 @@ export default function Chat({
   }, [messages.length, threadId]);
 
   const dark = theme === "dark";
+  useEffect(() => { void supabase.auth.getUser().then(({ data }) => setSenderId(data.user?.id ?? null)); }, []);
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    sendMessage(threadId, self, draft);
-    setDraft("");
+    if (!senderId) return;
+    void sendMessage(threadId, senderId, self, draft).then(({ error }) => { if (!error) setDraft(""); });
+  };
+
+  const saveEdit = async () => {
+    if (!editingId || !editingText.trim()) return;
+    const { error } = await editMessage(editingId, editingText);
+    if (error) setMessageError(error.message);
+    else { setEditingId(null); setEditingText(""); }
+  };
+
+  const removeMessage = async (id: string) => {
+    const { error } = await deleteMessage(id);
+    if (error) setMessageError(error.message);
   };
 
   return (
@@ -47,7 +65,21 @@ export default function Chat({
           return (
             <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
               <div className="max-w-[78%]">
-                <div className={`rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${bubble}`}>{m.text}</div>
+                {editingId === m.id ? (
+                  <div className="space-y-2">
+                    <textarea value={editingText} onChange={(event) => setEditingText(event.target.value)} rows={3} className="w-full min-w-56 rounded-lg border border-gold-400/50 bg-white px-3 py-2 text-sm text-navy-900 outline-none" />
+                    <div className="flex justify-end gap-2">
+                      <button type="button" onClick={() => { setEditingId(null); setEditingText(""); }} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-white/70"><X className="h-3 w-3" /> Cancel</button>
+                      <button type="button" onClick={() => void saveEdit()} className="rounded-lg bg-gold-400 px-2 py-1 text-xs font-semibold text-navy-900">Save</button>
+                    </div>
+                  </div>
+                ) : <div className={`rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${bubble}`}>{m.text}</div>}
+                {mine && canModifyMessage(m) && editingId !== m.id && (
+                  <div className="mt-1 flex justify-end gap-2">
+                    <button type="button" onClick={() => { setEditingId(m.id); setEditingText(m.text); setMessageError(""); }} className={`inline-flex items-center gap-1 text-[10px] ${dark ? "text-white/45 hover:text-white" : "text-slate-ink/50 hover:text-navy-900"}`}><Pencil className="h-3 w-3" /> Edit</button>
+                    <button type="button" onClick={() => void removeMessage(m.id)} className={`inline-flex items-center gap-1 text-[10px] ${dark ? "text-white/45 hover:text-rose-300" : "text-slate-ink/50 hover:text-rose-600"}`}><Trash2 className="h-3 w-3" /> Delete</button>
+                  </div>
+                )}
                 <div className={`font-mono mt-1 text-[10px] ${mine ? "text-right" : "text-left"} ${dark ? "text-white/35" : "text-slate-ink/50"}`}>
                   {m.from === "admin" ? "MUMUS Support" : "Client"} · {formatTime(m.ts)}
                 </div>
@@ -57,6 +89,8 @@ export default function Chat({
         })}
         <div ref={endRef} />
       </div>
+
+      {messageError && <p role="alert" className={`px-3 text-xs ${dark ? "text-rose-300" : "text-rose-600"}`}>{messageError}</p>}
 
       <form onSubmit={submit} className={`flex items-center gap-2 border-t p-3 ${dark ? "border-white/10" : "border-hairline"}`}>
         <input
