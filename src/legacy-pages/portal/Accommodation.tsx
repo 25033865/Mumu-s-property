@@ -3,7 +3,7 @@ import { BedDouble, MapPin, CalendarRange, Plus, X } from "lucide-react";
 import { Badge, Button } from "../../components/ui";
 import { supabase } from "../../lib/supabaseClient";
 
-type Booking = { id: string; bookingId: string; guest: string; camp: string; beds: number; checkIn: string; checkOut: string; status: "Requested" | "Approved" | "Declined" | "Active" | "Completed" | "Cancellation Requested" | "Change Requested" | "Cancelled" };
+type Booking = { id: string; bookingId: string; guest: string; camp: string; rooms: number; checkIn: string; checkOut: string; status: "Requested" | "Approved" | "Declined" | "Active" | "Completed" | "Cancellation Requested" | "Change Requested" | "Cancelled" };
 type Camp = { id: string; name: string; capacity: number; allocated: number };
 
 export default function Accommodation() {
@@ -12,7 +12,7 @@ export default function Accommodation() {
   const [showForm, setShowForm] = useState(false);
   const [guestName, setGuestName] = useState("");
   const [campId, setCampId] = useState("");
-  const [beds, setBeds] = useState("1");
+  const [rooms, setRooms] = useState("1");
   const [checkIn, setCheckIn] = useState("");
   const [checkOut, setCheckOut] = useState("");
   const [error, setError] = useState("");
@@ -24,7 +24,7 @@ export default function Accommodation() {
   const load = async () => {
     const [{ data: campRows, error: campError }, { data: bookingRows, error: bookingError }] = await Promise.all([
       supabase.from("accommodation_camps").select("id, name, capacity").order("name"),
-      supabase.from("accommodation_bookings").select("id, reference, guest_name, beds, check_in, check_out, status, accommodation_camps(name)").order("created_at", { ascending: false }),
+      supabase.from("accommodation_bookings").select('id, reference, guest_name, "Rooms", check_in, check_out, status, accommodation_camps(name)').order("created_at", { ascending: false }),
     ]);
     if (campError || bookingError) setError(campError?.message ?? bookingError?.message ?? "Could not load accommodation.");
     else {
@@ -33,7 +33,7 @@ export default function Accommodation() {
         const campRelation = booking.accommodation_camps as { name?: string } | { name?: string }[] | null;
         const campName = Array.isArray(campRelation) ? campRelation[0]?.name : campRelation?.name;
         return campName === camp.name;
-      }).reduce((sum, booking) => sum + booking.beds, 0) })));
+      }).reduce((sum, booking) => sum + booking.Rooms, 0) })));
       setBookings((bookingRows ?? []).map((booking) => ({
         id: booking.reference,
         bookingId: booking.id,
@@ -42,7 +42,7 @@ export default function Accommodation() {
           const campRelation = booking.accommodation_camps as { name?: string } | { name?: string }[] | null;
           return (Array.isArray(campRelation) ? campRelation[0]?.name : campRelation?.name) ?? "Unknown camp";
         })(),
-        beds: booking.beds,
+        rooms: booking.Rooms,
         checkIn: booking.check_in,
         checkOut: booking.check_out,
         status: booking.status,
@@ -58,13 +58,13 @@ export default function Accommodation() {
     setSubmitting(true);
     setError("");
     const { data: userData } = await supabase.auth.getUser();
-    const { error: insertError } = await supabase.from("accommodation_bookings").insert({ user_id: userData.user?.id, camp_id: campId, guest_name: guestName, beds: Number(beds), check_in: checkIn, check_out: checkOut });
+    const { error: insertError } = await supabase.from("accommodation_bookings").insert({ user_id: userData.user?.id, camp_id: campId, guest_name: guestName, Rooms: Number(rooms), check_in: checkIn, check_out: checkOut });
     if (insertError) setError(insertError.message);
-    else { setShowForm(false); setGuestName(""); setBeds("1"); setCheckIn(""); setCheckOut(""); await load(); }
+    else { setShowForm(false); setGuestName(""); setRooms("1"); setCheckIn(""); setCheckOut(""); await load(); }
     setSubmitting(false);
   };
 
-  const totalBeds = bookings.filter((b) => b.status !== "Completed" && b.status !== "Declined").reduce((s, b) => s + b.beds, 0);
+  const totalRooms = bookings.filter((b) => b.status !== "Completed" && b.status !== "Declined").reduce((s, b) => s + b.rooms, 0);
 
   const requestChange = async (action: "cancel" | "extend") => {
     if (!editingBooking) return;
@@ -94,12 +94,12 @@ export default function Accommodation() {
                 <span className="font-display text-sm font-bold">{c.name}</span>
               </div>
               <div className="font-display mt-3 text-2xl font-extrabold text-navy-900">
-                {c.allocated}<span className="text-base font-semibold text-slate-ink"> / {c.capacity} beds</span>
+                {c.allocated}<span className="text-base font-semibold text-slate-ink"> / {c.capacity} rooms</span>
               </div>
               <div className="mt-3 h-2 overflow-hidden rounded-full bg-mist">
                 <div className="h-full rounded-full bg-gold-400" style={{ width: `${pct}%` }} />
               </div>
-              <div className="font-mono mt-2 text-[11px] text-slate-ink/70">{c.capacity - c.allocated} beds available</div>
+              <div className="font-mono mt-2 text-[11px] text-slate-ink/70">{c.capacity - c.allocated} rooms available</div>
             </div>
           );
         })}
@@ -109,7 +109,7 @@ export default function Accommodation() {
       <div className="overflow-hidden rounded-2xl border border-hairline bg-white">
         <div className="flex items-center justify-between border-b border-hairline px-5 py-4">
           <h3 className="font-display text-sm font-bold text-navy-900">Your bookings</h3>
-          <span className="font-mono text-[11px] uppercase tracking-wider text-slate-ink/70">{totalBeds} beds currently allocated</span>
+          <span className="font-mono text-[11px] uppercase tracking-wider text-slate-ink/70">{totalRooms} rooms currently allocated</span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
@@ -118,7 +118,7 @@ export default function Accommodation() {
                 <th className="px-5 py-3 font-medium">Ref</th>
                 <th className="px-5 py-3 font-medium">Team</th>
                 <th className="px-5 py-3 font-medium">Camp</th>
-                <th className="px-5 py-3 font-medium">Beds</th>
+                <th className="px-5 py-3 font-medium">Rooms</th>
                 <th className="px-5 py-3 font-medium">Dates</th>
                 <th className="px-5 py-3 font-medium">Status</th>
               </tr>
@@ -132,7 +132,7 @@ export default function Accommodation() {
                     <span className="flex items-center gap-2"><BedDouble className="h-4 w-4 text-gold-500" />{b.guest}</span>
                   </td>
                   <td className="px-5 py-4 text-slate-ink">{b.camp}</td>
-                  <td className="px-5 py-4 font-mono text-navy-900">{b.beds}</td>
+                  <td className="px-5 py-4 font-mono text-navy-900">{b.rooms}</td>
                   <td className="px-5 py-4 text-slate-ink">
                     <span className="flex items-center gap-1.5 text-[13px]"><CalendarRange className="h-4 w-4 text-slate-ink/50" />{b.checkIn} → {b.checkOut}</span>
                   </td>
@@ -150,11 +150,11 @@ export default function Accommodation() {
             <div className="flex items-start justify-between"><div><h2 className="font-display text-xl font-bold text-navy-900">Request accommodation</h2><p className="mt-1 text-sm text-slate-ink">Tell us about your project team.</p></div><button type="button" onClick={() => setShowForm(false)} aria-label="Close"><X className="h-5 w-5 text-slate-ink" /></button></div>
             <div className="mt-5 space-y-3">
               <input required value={guestName} onChange={(event) => setGuestName(event.target.value)} placeholder="Team or guest name" className="w-full rounded-lg border border-hairline px-4 py-3 text-sm outline-none focus:border-navy-900" />
-              <select required value={campId} onChange={(event) => setCampId(event.target.value)} className="w-full rounded-lg border border-hairline bg-white px-4 py-3 text-sm outline-none focus:border-navy-900"><option value="">Select a camp</option>{camps.map((camp) => <option key={camp.id} value={camp.id}>{camp.name} ({camp.capacity - camp.allocated} beds available)</option>)}</select>
+              <select required value={campId} onChange={(event) => setCampId(event.target.value)} className="w-full rounded-lg border border-hairline bg-white px-4 py-3 text-sm outline-none focus:border-navy-900"><option value="">Select a camp</option>{camps.map((camp) => <option key={camp.id} value={camp.id}>{camp.name} ({camp.capacity - camp.allocated} rooms available)</option>)}</select>
               <div className="grid gap-3 sm:grid-cols-3">
                 <label className="space-y-1.5 text-sm font-semibold text-navy-900">
-                  <span>Number of beds</span>
-                  <input required min="1" type="number" value={beds} onChange={(event) => setBeds(event.target.value)} placeholder="e.g. 12" className="w-full rounded-lg border border-hairline px-4 py-3 text-sm font-normal outline-none focus:border-navy-900" />
+                  <span>Number of rooms</span>
+                  <input required min="1" type="number" value={rooms} onChange={(event) => setRooms(event.target.value)} placeholder="e.g. 12" className="w-full rounded-lg border border-hairline px-4 py-3 text-sm font-normal outline-none focus:border-navy-900" />
                 </label>
                 <label className="space-y-1.5 text-sm font-semibold text-navy-900">
                   <span>Check-in date</span>

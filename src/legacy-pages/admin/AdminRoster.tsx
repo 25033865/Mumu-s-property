@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { Badge } from "../../components/ui";
 import { supabase } from "../../lib/supabaseClient";
 
-type Booking = { id: string; guest: string; camp: string; beds: number; checkIn: string; checkOut: string; requestedCheckOut: string | null; status: "Requested" | "Approved" | "Declined" | "Active" | "Completed" | "Cancellation Requested" | "Change Requested" | "Cancelled"; bookingId: string };
+type Booking = { id: string; guest: string; camp: string; rooms: number; checkIn: string; checkOut: string; requestedCheckOut: string | null; status: "Requested" | "Approved" | "Declined" | "Active" | "Completed" | "Cancellation Requested" | "Change Requested" | "Cancelled"; bookingId: string };
 type Camp = { id: string; name: string; capacity: number; allocated: number };
 
 export default function AdminRoster() {
@@ -13,7 +13,7 @@ export default function AdminRoster() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [notifications, setNotifications] = useState<Array<{ id: string; bookingId: string; message: string }>>([]);
-  useEffect(() => { void Promise.all([supabase.from("accommodation_camps").select("id, name, capacity").order("name"), supabase.from("accommodation_bookings").select("id, reference, guest_name, beds, check_in, check_out, status, requested_check_out, accommodation_camps(name)").order("created_at", { ascending: false }), supabase.from("notifications").select("id, booking_id, message").is("read_at", null).order("created_at", { ascending: false })]).then(([campResult, bookingResult, notificationResult]) => {
+  useEffect(() => { void Promise.all([supabase.from("accommodation_camps").select("id, name, capacity").order("name"), supabase.from("accommodation_bookings").select('id, reference, guest_name, "Rooms", check_in, check_out, status, requested_check_out, accommodation_camps(name)').order("created_at", { ascending: false }), supabase.from("notifications").select("id, booking_id, message").is("read_at", null).order("created_at", { ascending: false })]).then(([campResult, bookingResult, notificationResult]) => {
     if (campResult.error || bookingResult.error) setError(campResult.error?.message ?? bookingResult.error?.message ?? "Could not load roster.");
     const rows = bookingResult.data ?? [];
     const active = rows.filter((booking) => booking.status !== "Declined" && booking.status !== "Completed");
@@ -21,7 +21,7 @@ export default function AdminRoster() {
       const campRelation = booking.accommodation_camps as { name?: string } | { name?: string }[] | null;
       const campName = Array.isArray(campRelation) ? campRelation[0]?.name : campRelation?.name;
       return campName === camp.name;
-    }).reduce((sum, booking) => sum + booking.beds, 0) })));
+    }).reduce((sum, booking) => sum + booking.Rooms, 0) })));
     setBookings(rows.map((booking) => ({
       bookingId: booking.id,
       id: booking.reference,
@@ -30,7 +30,7 @@ export default function AdminRoster() {
         const campRelation = booking.accommodation_camps as { name?: string } | { name?: string }[] | null;
         return (Array.isArray(campRelation) ? campRelation[0]?.name : campRelation?.name) ?? "Unknown camp";
       })(),
-      beds: booking.beds,
+      rooms: booking.Rooms,
       checkIn: booking.check_in,
       checkOut: booking.check_out,
       requestedCheckOut: booking.requested_check_out,
@@ -56,9 +56,9 @@ export default function AdminRoster() {
   const util = Math.round((totalAllocated / totalCapacity) * 100);
 
   const summary = [
-    { l: "Total capacity", v: `${totalCapacity} beds`, icon: BedDouble },
-    { l: "Allocated", v: `${totalAllocated} beds`, icon: Users },
-    { l: "Available", v: `${totalCapacity - totalAllocated} beds`, icon: BedDouble },
+    { l: "Total capacity", v: `${totalCapacity} rooms`, icon: BedDouble },
+    { l: "Allocated", v: `${totalAllocated} rooms`, icon: Users },
+    { l: "Available", v: `${totalCapacity - totalAllocated} rooms`, icon: BedDouble },
     { l: "Utilisation", v: `${util}%`, icon: ArrowUpRight },
   ];
 
@@ -67,7 +67,7 @@ export default function AdminRoster() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="font-display text-2xl font-extrabold tracking-tight md:text-3xl">Accommodation roster</h1>
-          <p className="mt-1 text-sm text-white/50">Allocated beds vs available capacity across all camps.</p>
+          <p className="mt-1 text-sm text-white/50">Allocated rooms vs available capacity across all camps.</p>
         </div>
         <Link to="/admin/requests" className="inline-flex items-center gap-1 text-[12px] font-semibold text-gold-400 hover:text-gold-300">RFQ pipeline <ArrowUpRight className="h-3.5 w-3.5" /></Link>
       </div>
@@ -118,7 +118,7 @@ export default function AdminRoster() {
                 <th className="px-5 py-3 font-medium">Ref</th>
                 <th className="px-5 py-3 font-medium">Team</th>
                 <th className="px-5 py-3 font-medium">Camp</th>
-                <th className="px-5 py-3 font-medium">Beds</th>
+                <th className="px-5 py-3 font-medium">Rooms</th>
                 <th className="px-5 py-3 font-medium">Dates</th>
                 <th className="px-5 py-3 font-medium">Status</th>
               </tr>
@@ -130,7 +130,7 @@ export default function AdminRoster() {
                   <td className="px-5 py-4 font-mono text-[12px] text-white/40">{b.id}</td>
                   <td className="px-5 py-4 font-medium">{b.guest}</td>
                   <td className="px-5 py-4 text-white/60">{b.camp}</td>
-                  <td className="px-5 py-4 font-mono">{b.beds}</td>
+                  <td className="px-5 py-4 font-mono">{b.rooms}</td>
                   <td className="px-5 py-4 text-white/60">
                     <span className="flex items-center gap-1.5 text-[13px]"><CalendarRange className="h-4 w-4 text-white/30" />{b.checkIn} → {b.checkOut}</span>
                   </td>

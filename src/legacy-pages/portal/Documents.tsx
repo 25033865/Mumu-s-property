@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { FileText, Download } from "lucide-react";
 import { Badge } from "../../components/ui";
 import { supabase } from "../../lib/supabaseClient";
+import { downloadStorageFile } from "../../lib/downloadFile";
 
 const typeTone: Record<string, "blue" | "green" | "amber" | "navy"> = {
   Quote: "blue", Delivery: "green", Compliance: "amber", Contract: "navy",
@@ -28,11 +29,14 @@ export default function Documents() {
     });
   }, []);
 
-  const download = async (document: { id: string; path: string }) => {
+  const download = async (document: { id: string; name: string; path: string }) => {
     setDownloading(document.id);
-    const { data, error: downloadError } = await supabase.storage.from("documents").createSignedUrl(document.path, 60);
-    if (downloadError || !data?.signedUrl) setError(downloadError?.message ?? "Could not prepare the download.");
-    else window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+    setError("");
+    try {
+      await downloadStorageFile("documents", document.path, document.name);
+    } catch (downloadError) {
+      setError(downloadError instanceof Error ? downloadError.message : "Could not prepare the download.");
+    }
     setDownloading(null);
   };
 
@@ -61,7 +65,7 @@ export default function Documents() {
               </div>
               <Badge tone={typeTone[d.type]}>{d.type}</Badge>
               <button type="button" onClick={() => void download(d)} disabled={downloading === d.id} className="inline-flex h-9 items-center justify-center gap-2 rounded-lg px-4 text-[13px] font-semibold text-navy-900 hover:bg-navy-900/5 disabled:opacity-50">
-                <Download className="h-4 w-4" /> {downloading === d.id ? "Preparing..." : "Download"}
+                <Download className="h-4 w-4" /> {downloading === d.id ? "Saving..." : "Download"}
               </button>
             </div>
           ))}

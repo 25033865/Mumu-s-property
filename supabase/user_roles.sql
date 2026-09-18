@@ -162,7 +162,7 @@ create table if not exists public.accommodation_bookings (
   user_id uuid not null references auth.users(id) on delete cascade,
   camp_id uuid not null references public.accommodation_camps(id),
   guest_name text not null,
-  beds integer not null check (beds > 0),
+  "Rooms" integer not null check ("Rooms" > 0),
   check_in date not null,
   check_out date not null,
   status text not null check (status in ('Requested', 'Approved', 'Declined', 'Active', 'Completed', 'Cancellation Requested', 'Change Requested', 'Cancelled')) default 'Requested',
@@ -204,6 +204,16 @@ create table if not exists public.messages (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.message_attachments (
+  id uuid primary key default gen_random_uuid(),
+  message_id uuid not null references public.messages(id) on delete cascade,
+  file_name text not null,
+  storage_path text not null unique,
+  content_type text,
+  size_bytes bigint,
+  created_at timestamptz not null default now()
+);
+
 alter table public.messages add column if not exists updated_at timestamptz not null default now();
 alter table public.messages add column if not exists read_at timestamptz;
 
@@ -225,6 +235,7 @@ alter table public.accommodation_bookings enable row level security;
 alter table public.notifications enable row level security;
 alter table public.message_threads enable row level security;
 alter table public.messages enable row level security;
+alter table public.message_attachments enable row level security;
 
 drop policy if exists "Users can read their company" on public.companies;
 create policy "Users can read their company"
@@ -476,6 +487,16 @@ create policy "Users can mark visible messages read"
   )
   with check (read_at is not null);
 
+drop policy if exists "Users can read message attachments" on public.message_attachments;
+create policy "Users can read message attachments"
+  on public.message_attachments for select to authenticated
+  using (exists (select 1 from public.messages where id = message_id and (exists (select 1 from public.message_threads where id = thread_id and client_id = auth.uid()) or exists (select 1 from public.user_roles where user_id = auth.uid() and role = 'admin'))));
+
+drop policy if exists "Users can create message attachments" on public.message_attachments;
+create policy "Users can create message attachments"
+  on public.message_attachments for insert to authenticated
+  with check (exists (select 1 from public.messages where id = message_id and sender_id = auth.uid() and (exists (select 1 from public.message_threads where id = thread_id and client_id = auth.uid()) or exists (select 1 from public.user_roles where user_id = auth.uid() and role = 'admin'))));
+
 create or replace function public.mark_thread_read(p_thread_id uuid)
 returns void
 language plpgsql
@@ -497,8 +518,13 @@ $$;
 grant execute on function public.mark_thread_read(uuid) to authenticated;
 
 alter table public.messages replica identity full;
+alter table public.message_attachments replica identity full;
 do $$ begin
   alter publication supabase_realtime add table public.messages;
+exception when duplicate_object then null;
+end $$;
+do $$ begin
+  alter publication supabase_realtime add table public.message_attachments;
 exception when duplicate_object then null;
 end $$;
 
@@ -539,6 +565,20 @@ on conflict (id) do nothing;
 insert into storage.buckets (id, name, public)
 values ('documents', 'documents', false)
 on conflict (id) do nothing;
+
+insert into storage.buckets (id, name, public)
+values ('message-attachments', 'message-attachments', false)
+on conflict (id) do nothing;
+
+drop policy if exists "Users can upload message attachments" on storage.objects;
+create policy "Users can upload message attachments"
+  on storage.objects for insert to authenticated
+  with check (bucket_id = 'message-attachments' and (exists (select 1 from public.message_threads where id = (storage.foldername(name))[1]::uuid and client_id = auth.uid()) or exists (select 1 from public.user_roles where user_id = auth.uid() and role = 'admin')));
+
+drop policy if exists "Users can read message attachments from storage" on storage.objects;
+create policy "Users can read message attachments from storage"
+  on storage.objects for select to authenticated
+  using (bucket_id = 'message-attachments' and (exists (select 1 from public.message_threads where id = (storage.foldername(name))[1]::uuid and client_id = auth.uid()) or exists (select 1 from public.user_roles where user_id = auth.uid() and role = 'admin')));
 
 drop policy if exists "Users can upload their request files" on storage.objects;
 create policy "Users can upload their request files"
