@@ -2,10 +2,10 @@ import { useState, useEffect } from "react";
 import { NavLink, Outlet, useLocation, useNavigate, Link } from "react-router-dom";
 import {
   LayoutDashboard, FilePlus2, ClipboardList, ReceiptText, BedDouble,
-  FileText, MessageSquare, Bell, LogOut, Menu, X, Search,
+  FileText, MessageSquare, Bell, LogOut, Menu, X, Search, ChevronDown,
+  UserRound, UserCog, Trash2,
 } from "lucide-react";
 import { Logo } from "./ui";
-import { client } from "../portalData";
 import { supabase } from "../lib/supabaseClient";
 
 const nav: { to: string; label: string; icon: typeof LayoutDashboard; end?: boolean; disabled?: boolean }[] = [
@@ -22,9 +22,16 @@ export default function PortalLayout() {
   const [open, setOpen] = useState(false);
   const [authChecking, setAuthChecking] = useState(true);
   const [unreadMessages, setUnreadMessages] = useState(0);
+  const [accountOpen, setAccountOpen] = useState(false);
+  const [accountName, setAccountName] = useState("Account");
+  const [accountCompany, setAccountCompany] = useState("");
+  const [accountInitials, setAccountInitials] = useState("U");
   const loc = useLocation();
   const nav2 = useNavigate();
-  useEffect(() => setOpen(false), [loc.pathname]);
+  useEffect(() => {
+    setOpen(false);
+    if (loc.pathname.startsWith("/portal/account")) setAccountOpen(true);
+  }, [loc.pathname]);
   useEffect(() => {
     let active = true;
     const loadUnread = async () => {
@@ -36,6 +43,38 @@ export default function PortalLayout() {
     void loadUnread();
     const channel = supabase.channel("portal-unread-messages").on("postgres_changes", { event: "*", schema: "public", table: "messages" }, () => void loadUnread()).subscribe();
     return () => { active = false; void supabase.removeChannel(channel); };
+  }, []);
+  useEffect(() => {
+    let active = true;
+    const loadAccount = async () => {
+      const { data } = await supabase.auth.getUser();
+      if (!data.user) return;
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("first_name, last_name, company_name")
+        .eq("user_id", data.user.id)
+        .maybeSingle();
+      if (!active) return;
+      const firstName = profile?.first_name ?? data.user.user_metadata.first_name ?? "";
+      const lastName = profile?.last_name ?? data.user.user_metadata.last_name ?? "";
+      const fullName = [firstName, lastName].filter(Boolean).join(" ") || data.user.email?.split("@")[0] || "Account";
+      const initials = [firstName, lastName]
+        .filter(Boolean)
+        .map((name) => name.charAt(0))
+        .join("")
+        .slice(0, 2)
+        .toUpperCase() || fullName.slice(0, 2).toUpperCase();
+      setAccountName(fullName);
+      setAccountCompany(profile?.company_name ?? data.user.user_metadata.company ?? "");
+      setAccountInitials(initials);
+    };
+    void loadAccount();
+    const handleProfileUpdated = () => void loadAccount();
+    window.addEventListener("profile-updated", handleProfileUpdated);
+    return () => {
+      active = false;
+      window.removeEventListener("profile-updated", handleProfileUpdated);
+    };
   }, []);
   useEffect(() => {
     let active = true;
@@ -88,6 +127,34 @@ export default function PortalLayout() {
               {n.label === "Support & Messages" && unreadMessages > 0 && <span className="ml-auto rounded-full bg-gold-400 px-2 py-0.5 text-[10px] font-bold text-navy-900">{unreadMessages > 99 ? "99+" : unreadMessages}</span>}
             </NavLink>
           ))}
+          <div className="pt-2">
+            <button
+              type="button"
+              onClick={() => setAccountOpen((isOpen) => !isOpen)}
+              aria-expanded={accountOpen}
+              className="flex w-full items-center gap-3 rounded-lg px-3.5 py-2.5 text-sm font-medium text-white/60 transition-colors hover:bg-white/5 hover:text-white"
+            >
+              <UserRound className="h-[18px] w-[18px]" />
+              <span>Account Settings</span>
+              <ChevronDown className={`ml-auto h-4 w-4 transition-transform ${accountOpen ? "rotate-180" : ""}`} />
+            </button>
+            {accountOpen && (
+              <div className="ml-4 mt-1 space-y-1 border-l border-white/10 pl-3">
+                <NavLink
+                  to="/portal/account/personal-details"
+                  className={({ isActive }) => `flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${isActive ? "bg-white/10 text-white" : "text-white/50 hover:bg-white/5 hover:text-white"}`}
+                >
+                  <UserCog className="h-4 w-4" /> Personal Details
+                </NavLink>
+                <NavLink
+                  to="/portal/account/delete"
+                  className={({ isActive }) => `flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${isActive ? "bg-rose-500/15 text-rose-200" : "text-white/50 hover:bg-rose-500/10 hover:text-rose-200"}`}
+                >
+                  <Trash2 className="h-4 w-4" /> Delete Account
+                </NavLink>
+              </div>
+            )}
+          </div>
         </nav>
         <div className="border-t border-white/10 p-4">
           <button
@@ -114,11 +181,11 @@ export default function PortalLayout() {
               <Bell className="h-5 w-5" />
               <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-gold-400 ring-2 ring-white" />
             </button>
-            <Link to="/portal" className="flex items-center gap-2.5 rounded-lg py-1 pl-1 pr-3 hover:bg-mist">
-              <span className="grid h-9 w-9 place-items-center rounded-full bg-navy-900 text-sm font-bold text-white">{client.initials}</span>
+            <Link to="/portal/account/personal-details" className="flex items-center gap-2.5 rounded-lg py-1 pl-1 pr-3 hover:bg-mist" aria-label="Open personal details">
+              <span className="grid h-9 w-9 place-items-center rounded-full bg-navy-900 text-sm font-bold text-white">{accountInitials}</span>
               <span className="hidden text-left sm:block">
-                <span className="block text-[13px] font-semibold leading-tight text-navy-900">{client.name}</span>
-                <span className="block text-[11px] text-slate-ink">{client.company}</span>
+                <span className="block text-[13px] font-semibold leading-tight text-navy-900">{accountName}</span>
+                <span className="block text-[11px] text-slate-ink">{accountCompany}</span>
               </span>
             </Link>
           </div>

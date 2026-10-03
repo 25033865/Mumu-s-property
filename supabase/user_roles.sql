@@ -79,6 +79,54 @@ on conflict (user_id) do update set
   company_name = excluded.company_name,
   updated_at = now();
 
+create or replace function public.update_my_profile(
+  p_first_name text,
+  p_last_name text,
+  p_company_name text
+)
+returns public.profiles
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  updated_profile public.profiles;
+begin
+  update public.profiles
+  set first_name = nullif(trim(p_first_name), ''),
+      last_name = nullif(trim(p_last_name), ''),
+      company_name = nullif(trim(p_company_name), ''),
+      updated_at = now()
+  where user_id = auth.uid()
+  returning * into updated_profile;
+
+  if updated_profile.user_id is null then
+    raise exception 'Profile not found';
+  end if;
+
+  return updated_profile;
+end;
+$$;
+
+create or replace function public.delete_my_account()
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if auth.uid() is null then
+    raise exception 'You must be signed in to delete your account';
+  end if;
+
+  delete from auth.users
+  where id = auth.uid();
+end;
+$$;
+
+grant execute on function public.update_my_profile(text, text, text) to authenticated;
+grant execute on function public.delete_my_account() to authenticated;
+
 create table if not exists public.service_requests (
   id uuid primary key default gen_random_uuid(),
   reference text unique not null default ('RFQ-' || lpad(nextval('public.service_request_reference_seq')::text, 4, '0')),
@@ -107,6 +155,75 @@ set
 from auth.users as users
 where requests.user_id = users.id
   and requests.requester_name is null;
+
+create or replace function public.admin_list_clients()
+returns table (
+  user_id uuid,
+  company_name text,
+  contact_name text,
+  email text,
+  categories text,
+  request_count bigint,
+  status text,
+  created_at timestamptz
+)
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not exists (
+    select 1
+    from public.user_roles
+    where user_roles.user_id = auth.uid()
+      and role = 'admin'
+  ) then
+    raise exception 'Only admins can view clients';
+  end if;
+
+  return query
+  select
+    users.id::uuid,
+    coalesce(
+      nullif(profiles.company_name, ''),
+      nullif(users.raw_user_meta_data ->> 'company', ''),
+      'Personal account'
+    )::text,
+    coalesce(
+      nullif(trim(concat_ws(' ', profiles.first_name, profiles.last_name)), ''),
+      users.email
+    )::text,
+    users.email::text,
+    coalesce(string_agg(distinct requests.category, ', '), 'Not set')::text,
+    count(requests.id)::bigint,
+    case
+      when users.email_confirmed_at is null then 'Pending'
+      else 'Active'
+    end::text,
+    users.created_at::timestamptz
+  from auth.users as users
+  left join public.profiles as profiles on profiles.user_id = users.id
+  left join public.service_requests as requests on requests.user_id = users.id
+  where not exists (
+    select 1
+    from public.user_roles as roles
+    where roles.user_id = users.id
+      and roles.role = 'admin'
+  )
+  group by
+    users.id,
+    profiles.company_name,
+    profiles.first_name,
+    profiles.last_name,
+    users.email,
+    users.raw_user_meta_data,
+    users.email_confirmed_at,
+    users.created_at
+  order by users.created_at desc;
+end;
+$$;
+
+grant execute on function public.admin_list_clients() to authenticated;
 
 create table if not exists public.service_request_files (
   id uuid primary key default gen_random_uuid(),

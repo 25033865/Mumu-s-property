@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { BedDouble, Users, CalendarRange, ArrowUpRight, Bell } from "lucide-react";
 import { Link } from "react-router-dom";
-import { Badge } from "../../components/ui";
 import { supabase } from "../../lib/supabaseClient";
 
 type Booking = { id: string; guest: string; camp: string; rooms: number; checkIn: string; checkOut: string; requestedCheckOut: string | null; status: "Requested" | "Approved" | "Declined" | "Active" | "Completed" | "Cancellation Requested" | "Change Requested" | "Cancelled"; bookingId: string };
-type Camp = { id: string; name: string; capacity: number; allocated: number };
+type Camp = { id: string; name: string; capacity: number; bookedRooms: number; availableRooms: number };
+
+const reservedBookingStatuses = new Set<Booking["status"]>(["Requested", "Approved", "Active", "Cancellation Requested", "Change Requested"]);
 
 export default function AdminRoster() {
   const [camps, setCamps] = useState<Camp[]>([]);
@@ -13,15 +14,32 @@ export default function AdminRoster() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [notifications, setNotifications] = useState<Array<{ id: string; bookingId: string; message: string }>>([]);
-  useEffect(() => { void Promise.all([supabase.from("accommodation_camps").select("id, name, capacity").order("name"), supabase.from("accommodation_bookings").select('id, reference, guest_name, "Rooms", check_in, check_out, status, requested_check_out, accommodation_camps(name)').order("created_at", { ascending: false }), supabase.from("notifications").select("id, booking_id, message").is("read_at", null).order("created_at", { ascending: false })]).then(([campResult, bookingResult, notificationResult]) => {
+  const load = async () => {
+    setLoading(true);
+    await supabase.rpc("release_due_accommodation_bookings");
+    let campResult = await supabase.from("accommodation_camps").select("id, name, capacity, booked_rooms, available_rooms").order("name");
+    if (campResult.error) {
+      const fallbackCampResult = await supabase.from("accommodation_camps").select("id, name, capacity").order("name");
+      campResult = { ...campResult, data: fallbackCampResult.data as typeof campResult.data };
+    }
+    const [bookingResult, notificationResult] = await Promise.all([
+      supabase.from("accommodation_bookings").select('id, reference, guest_name, "Rooms", check_in, check_out, status, requested_check_out, accommodation_camps(name)').order("created_at", { ascending: false }),
+      supabase.from("notifications").select("id, booking_id, message").is("read_at", null).order("created_at", { ascending: false }),
+    ]);
     if (campResult.error || bookingResult.error) setError(campResult.error?.message ?? bookingResult.error?.message ?? "Could not load roster.");
     const rows = bookingResult.data ?? [];
-    const active = rows.filter((booking) => booking.status !== "Declined" && booking.status !== "Completed");
-    setCamps((campResult.data ?? []).map((camp) => ({ ...camp, allocated: active.filter((booking) => {
-      const campRelation = booking.accommodation_camps as { name?: string } | { name?: string }[] | null;
-      const campName = Array.isArray(campRelation) ? campRelation[0]?.name : campRelation?.name;
-      return campName === camp.name;
-    }).reduce((sum, booking) => sum + booking.Rooms, 0) })));
+    const today = new Date().toISOString().slice(0, 10);
+    const active = rows.filter((booking) => reservedBookingStatuses.has(booking.status) && booking.check_out > today);
+    setCamps((campResult.data ?? []).map((camp) => {
+      const fallbackBooked = active.filter((booking) => {
+        const campRelation = booking.accommodation_camps as { name?: string } | { name?: string }[] | null;
+        const campName = Array.isArray(campRelation) ? campRelation[0]?.name : campRelation?.name;
+        return campName === camp.name;
+      }).reduce((sum, booking) => sum + booking.Rooms, 0);
+      const bookedRooms = Number(camp.booked_rooms ?? fallbackBooked);
+      const availableRooms = Number(camp.available_rooms ?? Math.max(camp.capacity - bookedRooms, 0));
+      return { id: camp.id, name: camp.name, capacity: camp.capacity, bookedRooms, availableRooms };
+    }));
     setBookings(rows.map((booking) => ({
       bookingId: booking.id,
       id: booking.reference,
@@ -38,27 +56,22 @@ export default function AdminRoster() {
     })));
     setNotifications((notificationResult.data ?? []).map((notification) => ({ id: notification.id, bookingId: notification.booking_id, message: notification.message })));
     setLoading(false);
-  }); }, []);
-  const updateStatus = async (id: string, status: Booking["status"]) => { const { error: updateError } = await supabase.from("accommodation_bookings").update({ status }).eq("id", id); if (updateError) setError(updateError.message); else { setBookings((rows) => rows.map((row) => row.bookingId === id ? { ...row, status } : row)); const notification = notifications.find((item) => item.bookingId === id); if (notification) { await supabase.from("notifications").update({ read_at: new Date().toISOString() }).eq("id", notification.id); setNotifications((items) => items.filter((item) => item.id !== notification.id)); } } };
+  };
+  useEffect(() => { void load(); }, []);
+  const updateStatus = async (id: string, status: Booking["status"]) => { const { error: updateError } = await supabase.rpc("admin_update_accommodation_booking_status", { p_booking_id: id, p_status: status }); if (updateError) setError(updateError.message); else await load(); };
   const resolveRequest = async (booking: Booking, approved: boolean) => {
-    const nextStatus = booking.status === "Cancellation Requested" ? (approved ? "Cancelled" : "Approved") : (approved ? "Active" : "Approved");
-    const updates = booking.status === "Change Requested" && approved ? { status: nextStatus, check_out: booking.requestedCheckOut } : { status: nextStatus };
-    const { error: updateError } = await supabase.from("accommodation_bookings").update(updates).eq("id", booking.bookingId);
+    const { error: updateError } = await supabase.rpc("review_accommodation_change", { p_booking_id: booking.bookingId, p_approved: approved });
     if (updateError) setError(updateError.message);
-    else {
-      setBookings((rows) => rows.map((row) => row.bookingId === booking.bookingId ? { ...row, status: nextStatus, checkOut: approved && booking.status === "Change Requested" ? booking.requestedCheckOut ?? row.checkOut : row.checkOut } : row));
-      const notification = notifications.find((item) => item.bookingId === booking.bookingId);
-      if (notification) { await supabase.from("notifications").update({ read_at: new Date().toISOString() }).eq("id", notification.id); setNotifications((items) => items.filter((item) => item.id !== notification.id)); }
-    }
+    else await load();
   };
   const totalCapacity = camps.reduce((s, c) => s + c.capacity, 0);
-  const totalAllocated = camps.reduce((s, c) => s + c.allocated, 0);
-  const util = Math.round((totalAllocated / totalCapacity) * 100);
-
+  const totalAllocated = camps.reduce((s, c) => s + Math.min(c.bookedRooms, c.capacity), 0);
+  const totalAvailable = camps.reduce((s, c) => s + c.availableRooms, 0);
+  const util = totalCapacity > 0 ? Math.min(100, Math.round((totalAllocated / totalCapacity) * 100)) : 0;
   const summary = [
     { l: "Total capacity", v: `${totalCapacity} rooms`, icon: BedDouble },
     { l: "Allocated", v: `${totalAllocated} rooms`, icon: Users },
-    { l: "Available", v: `${totalCapacity - totalAllocated} rooms`, icon: BedDouble },
+    { l: "Available", v: `${totalAvailable} rooms`, icon: BedDouble },
     { l: "Utilisation", v: `${util}%`, icon: ArrowUpRight },
   ];
 
@@ -77,7 +90,7 @@ export default function AdminRoster() {
       {/* summary */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {summary.map((s) => (
-          <div key={s.l} className="rounded-2xl border border-white/8 bg-white/[0.03] p-5">
+          <div key={s.l} className="rounded-2xl border border-white/8 bg-white/3 p-5">
             <span className="grid h-11 w-11 place-items-center rounded-xl bg-gold-400/15 text-gold-400"><s.icon className="h-5 w-5" /></span>
             <div className="font-display mt-4 text-3xl font-extrabold">{s.v}</div>
             <div className="mt-0.5 text-sm text-white/60">{s.l}</div>
@@ -86,16 +99,17 @@ export default function AdminRoster() {
       </div>
 
       {/* camp utilisation */}
-      <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-6">
+      <div className="rounded-2xl border border-white/8 bg-white/3 p-6">
         <h3 className="font-display text-sm font-bold">Camp utilisation</h3>
         <div className="mt-6 space-y-5">
           {camps.map((c) => {
-            const pct = Math.round((c.allocated / c.capacity) * 100);
+            const displayBooked = Math.min(c.bookedRooms, c.capacity);
+            const pct = c.capacity > 0 ? Math.min(100, Math.round((displayBooked / c.capacity) * 100)) : 0;
             return (
               <div key={c.name}>
                 <div className="flex justify-between text-[13px]">
                   <span className="font-medium text-white/80">{c.name}</span>
-                  <span className="font-mono text-white/60">{c.allocated}/{c.capacity} · {pct}%</span>
+                  <span className="font-mono text-white/60">{displayBooked}/{c.capacity} · {pct}%</span>
                 </div>
                 <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-white/8">
                   <div className={`h-full rounded-full ${pct > 80 ? "bg-rose-400" : "bg-gold-400"}`} style={{ width: `${pct}%` }} />
@@ -107,7 +121,7 @@ export default function AdminRoster() {
       </div>
 
       {/* allocations table */}
-      <div className="overflow-hidden rounded-2xl border border-white/8 bg-white/[0.03]">
+      <div className="overflow-hidden rounded-2xl border border-white/8 bg-white/3">
         <div className="border-b border-white/8 px-5 py-4">
           <h3 className="font-display text-sm font-bold">Current allocations</h3>
         </div>
@@ -126,7 +140,7 @@ export default function AdminRoster() {
             <tbody className="divide-y divide-white/5">
               {loading && <tr><td colSpan={6} className="px-5 py-12 text-center text-white/50">Loading bookings...</td></tr>}
               {!loading && bookings.map((b) => (
-                <tr key={b.id} className="hover:bg-white/[0.02]">
+                <tr key={b.id} className="hover:bg-white/2">
                   <td className="px-5 py-4 font-mono text-[12px] text-white/40">{b.id}</td>
                   <td className="px-5 py-4 font-medium">{b.guest}</td>
                   <td className="px-5 py-4 text-white/60">{b.camp}</td>
@@ -134,7 +148,7 @@ export default function AdminRoster() {
                   <td className="px-5 py-4 text-white/60">
                     <span className="flex items-center gap-1.5 text-[13px]"><CalendarRange className="h-4 w-4 text-white/30" />{b.checkIn} → {b.checkOut}</span>
                   </td>
-                  <td className="px-5 py-4"><select value={b.status} onChange={(event) => void updateStatus(b.bookingId, event.target.value as Booking["status"])} className="rounded-lg border border-white/10 bg-navy-950 px-3 py-2 text-xs text-white [color-scheme:dark]"><option>Requested</option><option>Approved</option><option>Declined</option><option>Active</option><option>Completed</option></select></td>
+                  <td className="px-5 py-4"><select value={b.status} onChange={(event) => void updateStatus(b.bookingId, event.target.value as Booking["status"])} className="rounded-lg border border-white/10 bg-navy-950 px-3 py-2 text-xs text-white scheme-dark"><option>Requested</option><option>Approved</option><option>Declined</option><option>Active</option><option>Completed</option></select></td>
                 </tr>
               ))}
             </tbody>

@@ -18,10 +18,10 @@ const nav = [
   { to: "/admin/clients", label: "Clients", icon: Users },
   { to: "/admin/requests", label: "RFQ Pipeline", icon: ClipboardList },
   { to: "/admin/roster", label: "Accommodation Roster", icon: BedDouble },
-  { to: "/admin/requests", label: "Quotations", icon: ReceiptText, disabled: true },
+  { to: "/admin/quotations", label: "Quotations", icon: ReceiptText },
   { to: "/admin/messages", label: "Messages", icon: MessageSquare },
-  { to: "/admin", label: "Documents", icon: FileText, disabled: true },
-  { to: "/admin", label: "Analytics", icon: BarChart3, disabled: true },
+  { to: "/admin/documents", label: "Documents", icon: FileText },
+  { to: "/admin/analytics", label: "Analytics", icon: BarChart3 },
 ];
 
 export default function AdminLayout() {
@@ -92,11 +92,8 @@ export default function AdminLayout() {
               key={i}
               to={n.to}
               end={n.end}
-              onClick={(e) => n.disabled && e.preventDefault()}
               className={({ isActive }) =>
-                `flex items-center gap-3 rounded-lg px-3.5 py-2.5 text-sm font-medium transition-colors ${
-                  n.disabled ? "cursor-default text-white/30" : isActive ? "bg-gold-400 text-navy-900" : "text-white/60 hover:bg-white/5 hover:text-white"
-                }`
+                `flex items-center gap-3 rounded-lg px-3.5 py-2.5 text-sm font-medium transition-colors ${isActive ? "bg-gold-400 text-navy-900" : "text-white/60 hover:bg-white/5 hover:text-white"}`
               }
             >
               <n.icon className="h-[18px] w-[18px]" /> {n.label}
@@ -122,7 +119,7 @@ export default function AdminLayout() {
           </div>
           <div className="ml-auto flex items-center gap-3">
             <span className="font-mono hidden text-[11px] uppercase tracking-wider text-white/40 sm:block">MUMUS Staff Portal</span>
-            <span className="grid h-9 w-9 place-items-center rounded-full bg-gold-400 text-sm font-bold text-navy-900">NK</span>
+            <span className="grid h-9 w-9 place-items-center rounded-full bg-gold-400 text-sm font-bold text-navy-900">MP</span>
           </div>
         </header>
         <main className="flex-1 px-5 py-6 lg:px-8 lg:py-8">

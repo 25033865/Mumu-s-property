@@ -21,11 +21,16 @@ import Quotes from "./legacy-pages/portal/Quotes";
 import Accommodation from "./legacy-pages/portal/Accommodation";
 import Documents from "./legacy-pages/portal/Documents";
 import Messages from "./legacy-pages/portal/Messages";
+import PersonalDetails from "./legacy-pages/portal/PersonalDetails";
+import DeleteAccount from "./legacy-pages/portal/DeleteAccount";
 import AdminHome from "./legacy-pages/admin/AdminHome";
 import AdminClients from "./legacy-pages/admin/AdminClients";
 import AdminRequests from "./legacy-pages/admin/AdminRequests";
 import AdminRoster from "./legacy-pages/admin/AdminRoster";
 import AdminMessages from "./legacy-pages/admin/AdminMessages";
+import AdminQuotations from "./legacy-pages/admin/AdminQuotations";
+import AdminDocuments from "./legacy-pages/admin/AdminDocuments";
+import AdminAnalytics from "./legacy-pages/admin/AdminAnalytics";
 import NotFound from "./legacy-pages/NotFound";
 
 export const routeConfig = [
@@ -60,6 +65,8 @@ export const routeConfig = [
       { path: "accommodation", Component: Accommodation },
       { path: "documents", Component: Documents },
       { path: "messages", Component: Messages },
+      { path: "account/personal-details", Component: PersonalDetails },
+      { path: "account/delete", Component: DeleteAccount },
     ],
   },
   {
@@ -71,6 +78,9 @@ export const routeConfig = [
       { path: "requests", Component: AdminRequests },
       { path: "roster", Component: AdminRoster },
       { path: "messages", Component: AdminMessages },
+      { path: "quotations", Component: AdminQuotations },
+      { path: "documents", Component: AdminDocuments },
+      { path: "analytics", Component: AdminAnalytics },
     ],
   },
   { path: "*", Component: NotFound },

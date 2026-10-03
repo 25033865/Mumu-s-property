@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { MessageSquare, ArrowLeft } from "lucide-react";
 import Chat from "../../components/Chat";
 import { formatTime, markThreadRead, type Thread } from "../../messaging";
@@ -10,6 +11,7 @@ export default function AdminMessages() {
   const [showChat, setShowChat] = useState(false); // mobile: list vs chat
   const [previews, setPreviews] = useState<Record<string, { text: string; ts: number; from: "client" | "admin" }>>({});
   const [error, setError] = useState("");
+  const [searchParams] = useSearchParams();
   useEffect(() => {
     void supabase.from("message_threads").select("id, client_id").then(async ({ data, error: threadError }) => {
       if (threadError) {
@@ -28,13 +30,14 @@ export default function AdminMessages() {
         return { id: thread.id, userId: thread.client_id, client: name, company: profile?.company_name || "Client account", initials: name.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase(), sector: "Client" };
       });
       setThreads(next);
-      setActive(next[0]?.id ?? null);
+      const requestedClientId = searchParams.get("client");
+      setActive(next.find((thread) => thread.userId === requestedClientId)?.id ?? next[0]?.id ?? null);
       const messages = await supabase.from("messages").select("thread_id, text, sender_role, created_at").order("created_at", { ascending: false });
       const nextPreviews: Record<string, { text: string; ts: number; from: "client" | "admin" }> = {};
       (messages.data ?? []).forEach((message) => { if (!nextPreviews[message.thread_id]) nextPreviews[message.thread_id] = { text: message.text, ts: new Date(message.created_at).getTime(), from: message.sender_role }; });
       setPreviews(nextPreviews);
     });
-  }, []);
+  }, [searchParams]);
   const activeThread = threads.find((thread) => thread.id === active);
   useEffect(() => { if (active) void markThreadRead(active); }, [active]);
 

@@ -4,7 +4,9 @@ import { Badge, Button } from "../../components/ui";
 import { supabase } from "../../lib/supabaseClient";
 
 type Booking = { id: string; bookingId: string; guest: string; camp: string; rooms: number; checkIn: string; checkOut: string; status: "Requested" | "Approved" | "Declined" | "Active" | "Completed" | "Cancellation Requested" | "Change Requested" | "Cancelled" };
-type Camp = { id: string; name: string; capacity: number; allocated: number };
+type Camp = { id: string; name: string; capacity: number; bookedRooms: number; availableRooms: number };
+
+const reservedBookingStatuses = new Set<Booking["status"]>(["Requested", "Approved", "Active", "Cancellation Requested", "Change Requested"]);
 
 export default function Accommodation() {
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -22,18 +24,30 @@ export default function Accommodation() {
   const [newCheckOut, setNewCheckOut] = useState("");
 
   const load = async () => {
+    await supabase.rpc("release_due_accommodation_bookings");
+    let campResult = await supabase.from("accommodation_camps").select("id, name, capacity, booked_rooms, available_rooms").order("name");
+    if (campResult.error) {
+      const fallbackCampResult = await supabase.from("accommodation_camps").select("id, name, capacity").order("name");
+      campResult = { ...campResult, data: fallbackCampResult.data as typeof campResult.data };
+    }
     const [{ data: campRows, error: campError }, { data: bookingRows, error: bookingError }] = await Promise.all([
-      supabase.from("accommodation_camps").select("id, name, capacity").order("name"),
+      Promise.resolve(campResult),
       supabase.from("accommodation_bookings").select('id, reference, guest_name, "Rooms", check_in, check_out, status, accommodation_camps(name)').order("created_at", { ascending: false }),
     ]);
     if (campError || bookingError) setError(campError?.message ?? bookingError?.message ?? "Could not load accommodation.");
     else {
-      const activeBookings = (bookingRows ?? []).filter((booking) => booking.status !== "Declined" && booking.status !== "Completed");
-      setCamps((campRows ?? []).map((camp) => ({ ...camp, allocated: activeBookings.filter((booking) => {
+      const today = new Date().toISOString().slice(0, 10);
+      const activeBookings = (bookingRows ?? []).filter((booking) => reservedBookingStatuses.has(booking.status) && booking.check_out > today);
+      setCamps((campRows ?? []).map((camp) => {
+        const fallbackBooked = activeBookings.filter((booking) => {
         const campRelation = booking.accommodation_camps as { name?: string } | { name?: string }[] | null;
         const campName = Array.isArray(campRelation) ? campRelation[0]?.name : campRelation?.name;
         return campName === camp.name;
-      }).reduce((sum, booking) => sum + booking.Rooms, 0) })));
+        }).reduce((sum, booking) => sum + booking.Rooms, 0);
+        const bookedRooms = Number(camp.booked_rooms ?? fallbackBooked);
+        const availableRooms = Number(camp.available_rooms ?? Math.max(camp.capacity - bookedRooms, 0));
+        return { id: camp.id, name: camp.name, capacity: camp.capacity, bookedRooms, availableRooms };
+      }));
       setBookings((bookingRows ?? []).map((booking) => ({
         id: booking.reference,
         bookingId: booking.id,
@@ -55,16 +69,33 @@ export default function Accommodation() {
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
+    const selectedCamp = camps.find((camp) => camp.id === campId);
+    const roomCount = Number(rooms);
+    if (!selectedCamp) {
+      setError("Choose a camp first.");
+      return;
+    }
+    if (!Number.isInteger(roomCount) || roomCount < 1) {
+      setError("Enter a valid number of rooms.");
+      return;
+    }
+    if (roomCount > selectedCamp.availableRooms) {
+      setError(`Only ${selectedCamp.availableRooms} rooms are available at ${selectedCamp.name}.`);
+      return;
+    }
     setSubmitting(true);
     setError("");
     const { data: userData } = await supabase.auth.getUser();
-    const { error: insertError } = await supabase.from("accommodation_bookings").insert({ user_id: userData.user?.id, camp_id: campId, guest_name: guestName, Rooms: Number(rooms), check_in: checkIn, check_out: checkOut });
+    const { error: insertError } = await supabase.from("accommodation_bookings").insert({ user_id: userData.user?.id, camp_id: campId, guest_name: guestName, Rooms: roomCount, check_in: checkIn, check_out: checkOut });
     if (insertError) setError(insertError.message);
     else { setShowForm(false); setGuestName(""); setRooms("1"); setCheckIn(""); setCheckOut(""); await load(); }
     setSubmitting(false);
   };
 
-  const totalRooms = bookings.filter((b) => b.status !== "Completed" && b.status !== "Declined").reduce((s, b) => s + b.rooms, 0);
+  const totalRooms = bookings.filter((b) => reservedBookingStatuses.has(b.status)).reduce((s, b) => s + b.rooms, 0);
+  const selectedCamp = camps.find((camp) => camp.id === campId);
+  const requestedRooms = Number(rooms);
+  const roomRequestTooLarge = Boolean(selectedCamp && Number.isFinite(requestedRooms) && requestedRooms > selectedCamp.availableRooms);
 
   const requestChange = async (action: "cancel" | "extend") => {
     if (!editingBooking) return;
@@ -86,7 +117,8 @@ export default function Accommodation() {
       {/* camp capacity */}
       <div className="grid gap-4 sm:grid-cols-3">
         {camps.map((c) => {
-          const pct = Math.round((c.allocated / c.capacity) * 100);
+          const displayBooked = Math.min(c.bookedRooms, c.capacity);
+          const pct = c.capacity > 0 ? Math.min(100, Math.round((displayBooked / c.capacity) * 100)) : 0;
           return (
             <div key={c.name} className="rounded-2xl border border-hairline bg-white p-5">
               <div className="flex items-center gap-2 text-navy-900">
@@ -94,12 +126,12 @@ export default function Accommodation() {
                 <span className="font-display text-sm font-bold">{c.name}</span>
               </div>
               <div className="font-display mt-3 text-2xl font-extrabold text-navy-900">
-                {c.allocated}<span className="text-base font-semibold text-slate-ink"> / {c.capacity} rooms</span>
+                {displayBooked}<span className="text-base font-semibold text-slate-ink"> / {c.capacity} rooms</span>
               </div>
               <div className="mt-3 h-2 overflow-hidden rounded-full bg-mist">
                 <div className="h-full rounded-full bg-gold-400" style={{ width: `${pct}%` }} />
               </div>
-              <div className="font-mono mt-2 text-[11px] text-slate-ink/70">{c.capacity - c.allocated} rooms available</div>
+              <div className="font-mono mt-2 text-[11px] text-slate-ink/70">{c.availableRooms} rooms available</div>
             </div>
           );
         })}
@@ -150,11 +182,11 @@ export default function Accommodation() {
             <div className="flex items-start justify-between"><div><h2 className="font-display text-xl font-bold text-navy-900">Request accommodation</h2><p className="mt-1 text-sm text-slate-ink">Tell us about your project team.</p></div><button type="button" onClick={() => setShowForm(false)} aria-label="Close"><X className="h-5 w-5 text-slate-ink" /></button></div>
             <div className="mt-5 space-y-3">
               <input required value={guestName} onChange={(event) => setGuestName(event.target.value)} placeholder="Team or guest name" className="w-full rounded-lg border border-hairline px-4 py-3 text-sm outline-none focus:border-navy-900" />
-              <select required value={campId} onChange={(event) => setCampId(event.target.value)} className="w-full rounded-lg border border-hairline bg-white px-4 py-3 text-sm outline-none focus:border-navy-900"><option value="">Select a camp</option>{camps.map((camp) => <option key={camp.id} value={camp.id}>{camp.name} ({camp.capacity - camp.allocated} rooms available)</option>)}</select>
+              <select required value={campId} onChange={(event) => setCampId(event.target.value)} className="w-full rounded-lg border border-hairline bg-white px-4 py-3 text-sm outline-none focus:border-navy-900"><option value="">Select a camp</option>{camps.map((camp) => <option key={camp.id} value={camp.id} disabled={camp.availableRooms <= 0}>{camp.name} ({camp.availableRooms} rooms available)</option>)}</select>
               <div className="grid gap-3 sm:grid-cols-3">
                 <label className="space-y-1.5 text-sm font-semibold text-navy-900">
                   <span>Number of rooms</span>
-                  <input required min="1" type="number" value={rooms} onChange={(event) => setRooms(event.target.value)} placeholder="e.g. 12" className="w-full rounded-lg border border-hairline px-4 py-3 text-sm font-normal outline-none focus:border-navy-900" />
+                  <input required min="1" max={selectedCamp?.availableRooms || undefined} type="number" value={rooms} onChange={(event) => setRooms(event.target.value)} placeholder="e.g. 12" className="w-full rounded-lg border border-hairline px-4 py-3 text-sm font-normal outline-none focus:border-navy-900" />
                 </label>
                 <label className="space-y-1.5 text-sm font-semibold text-navy-900">
                   <span>Check-in date</span>
@@ -165,7 +197,8 @@ export default function Accommodation() {
                   <input required type="date" value={checkOut} onChange={(event) => setCheckOut(event.target.value)} className="w-full rounded-lg border border-hairline px-4 py-3 text-sm font-normal outline-none focus:border-navy-900" />
                 </label>
               </div>
-              <Button type="submit" variant="gold" full disabled={submitting}>{submitting ? "Submitting..." : "Submit booking request"}</Button>
+              {selectedCamp && <p className={`text-xs ${roomRequestTooLarge ? "text-rose-600" : "text-slate-ink"}`}>{roomRequestTooLarge ? `Only ${selectedCamp.availableRooms} rooms are available at ${selectedCamp.name}.` : `${selectedCamp.availableRooms} rooms available at ${selectedCamp.name}.`}</p>}
+              <Button type="submit" variant="gold" full disabled={submitting || !selectedCamp || selectedCamp.availableRooms <= 0 || roomRequestTooLarge}>{submitting ? "Submitting..." : "Submit booking request"}</Button>
             </div>
           </form>
         </div>
