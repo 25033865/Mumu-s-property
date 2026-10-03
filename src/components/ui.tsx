@@ -1,6 +1,5 @@
 import { Link } from "react-router-dom";
 import type { ReactNode } from "react";
-import logoMark from "@/imports/PHOTO-2026-09-11-16-12-37.jpg";
 
 export function Logo({
   variant = "dark",
@@ -13,8 +12,11 @@ export function Logo({
   const sub = variant === "light" ? "text-white/50" : "text-slate-ink/70";
   return (
     <Link to="/" className={`group flex items-center gap-3 ${className}`}>
-      <span className="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-lg bg-white shadow-sm ring-1 ring-navy-900/10">
-        <img src={logoMark.src} alt="MUMUS PROPERTYS logo" className="h-full w-full object-cover" />
+      <span
+        aria-label="MUMUS PROPERTYS logo"
+        className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-navy-900 font-display text-[13px] font-black tracking-[-0.08em] text-gold-300 shadow-sm ring-1 ring-navy-900/10"
+      >
+        MP
       </span>
       <span className="leading-none">
         <span className={`font-display block text-[15px] font-extrabold tracking-tight ${text}`}>
