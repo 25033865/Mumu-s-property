@@ -41,10 +41,17 @@ body,
   height: 100%;
 }
 
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 body {
   font-family: var(--font-sans);
   color: var(--color-ink);
   background: #ffffff;
+  overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
 }
 

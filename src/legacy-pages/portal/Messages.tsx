@@ -25,7 +25,7 @@ export default function Messages() {
         <p className="mt-1 text-sm text-slate-ink">Direct line to the MUMUS PROPERTYS team about your RFQs, quotes and deliveries.</p>
       </div>
 
-      <div className="flex h-[70vh] flex-col overflow-hidden rounded-2xl border border-hairline bg-white shadow-sm">
+      <div className="flex h-[calc(100dvh-12rem)] min-h-[22rem] min-w-0 flex-col overflow-hidden rounded-2xl border border-hairline bg-white shadow-sm md:h-[70vh]">
         <div className="flex items-center gap-3 border-b border-hairline px-5 py-4">
           <span className="grid h-11 w-11 place-items-center rounded-full bg-navy-900 text-gold-400">
             <Headset className="h-5 w-5" />

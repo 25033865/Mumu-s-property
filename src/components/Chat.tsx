@@ -64,7 +64,7 @@ export default function Chat({
   };
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    <div className="flex h-full min-h-0 min-w-0 flex-col">
       <div className="flex-1 space-y-3 overflow-y-auto p-5">
         {messages.length === 0 && (
           <div className={`grid h-full place-items-center text-sm ${dark ? "text-white/40" : "text-slate-ink/60"}`}>
@@ -119,7 +119,7 @@ export default function Chat({
           {files.map((file, index) => <span key={`${file.name}-${index}`} className="inline-flex max-w-full items-center gap-1 rounded-md bg-black/10 px-2 py-1"><span className="max-w-48 truncate">{file.name}</span><button type="button" onClick={() => setFiles((current) => current.filter((_, fileIndex) => fileIndex !== index))} aria-label={`Remove ${file.name}`}><X className="h-3 w-3" /></button></span>)}
         </div>
       </div>}
-      <form onSubmit={(event) => void submit(event)} className={`flex items-center gap-2 border-t p-3 ${dark ? "border-white/10" : "border-hairline"}`}>
+      <form onSubmit={(event) => void submit(event)} className={`flex min-w-0 items-center gap-2 border-t p-3 ${dark ? "border-white/10" : "border-hairline"}`}>
         <button type="button" onClick={() => fileInputRef.current?.click()} className={`grid h-11 w-11 shrink-0 place-items-center rounded-lg border ${dark ? "border-white/10 text-white/60 hover:text-white" : "border-hairline text-slate-ink/70 hover:text-navy-900"}`} title="Attach files" aria-label="Attach files">
           <Paperclip className="h-4 w-4" />
         </button>
@@ -137,9 +137,9 @@ export default function Chat({
         <button
           type="submit"
           disabled={sending || (!draft.trim() && files.length === 0)}
-          className="inline-flex h-11 shrink-0 items-center gap-2 rounded-lg bg-gold-400 px-4 text-sm font-semibold text-navy-900 transition-colors hover:bg-gold-300 disabled:opacity-40"
+          className="inline-flex h-11 shrink-0 items-center gap-2 rounded-lg bg-gold-400 px-3 text-sm font-semibold text-navy-900 transition-colors hover:bg-gold-300 disabled:opacity-40 sm:px-4"
         >
-          <Send className="h-4 w-4" /> {sending ? "Sending..." : "Send"}
+          <Send className="h-4 w-4" /> <span className="hidden sm:inline">{sending ? "Sending..." : "Send"}</span>
         </button>
       </form>
       {preview && <AttachmentViewer attachment={preview} dark={dark} onClose={() => setPreview(null)} />}
@@ -245,13 +245,13 @@ function AttachmentViewer({ attachment, dark, onClose }: { attachment: Attachmen
     }
   };
   return <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/75 p-4" role="dialog" aria-modal="true" aria-label={attachment.fileName}>
-    <div className={`relative flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-xl ${dark ? "bg-navy-950" : "bg-white"}`}>
+    <div className={`relative flex max-h-[92dvh] w-full max-w-4xl flex-col overflow-hidden rounded-xl ${dark ? "bg-navy-950" : "bg-white"}`}>
       <div className={`flex items-center justify-between border-b px-4 py-3 ${dark ? "border-white/10 text-white" : "border-hairline text-navy-900"}`}>
         <span className="min-w-0 truncate text-sm font-semibold">{attachment.fileName}</span>
         <button type="button" onClick={onClose} className="grid h-9 w-9 shrink-0 place-items-center rounded-lg hover:bg-black/10" aria-label="Close viewer" title="Close"><X className="h-5 w-5" /></button>
       </div>
       <div className="flex min-h-64 flex-1 items-center justify-center overflow-auto p-4">
-        {url && image ? <img src={url} alt={attachment.fileName} className="max-h-[70vh] max-w-full object-contain" /> : url ? <iframe src={url} title={attachment.fileName} className="h-[70vh] w-full border-0" /> : <span className={dark ? "text-white/60" : "text-slate-ink/60"}>Loading file...</span>}
+        {url && image ? <img src={url} alt={attachment.fileName} className="max-h-[70dvh] max-w-full object-contain" /> : url ? <iframe src={url} title={attachment.fileName} className="h-[70dvh] w-full border-0" /> : <span className={dark ? "text-white/60" : "text-slate-ink/60"}>Loading file...</span>}
       </div>
       <div className={`flex flex-wrap items-center justify-between gap-3 border-t px-4 py-3 ${dark ? "border-white/10" : "border-hairline"}`}>
         {saveError ? <p className={`text-xs ${dark ? "text-rose-300" : "text-rose-600"}`}>{saveError}</p> : <span />}

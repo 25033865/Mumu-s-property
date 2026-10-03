@@ -44,14 +44,14 @@ export default function PublicLayout() {
   }, [loc.pathname]);
 
   return (
-    <div className="min-h-full bg-white">
+    <div className="min-h-screen overflow-x-hidden bg-white">
       {/* main nav */}
       <header
         className={`sticky top-0 z-50 transition-all duration-300 ${
           scrolled ? "bg-white/90 shadow-[0_1px_0_rgba(0,0,0,.06)] backdrop-blur-md" : "bg-white"
         }`}
       >
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-1 px-4 py-3 sm:gap-2 sm:px-6">
           <Logo />
           <nav className="hidden items-center gap-0.5 xl:flex">
             {nav.map((n) => (
@@ -75,8 +75,8 @@ export default function PublicLayout() {
             ))}
           </nav>
           <div className="flex items-center gap-2">
-            <Button to="/login" variant="gold" size="sm" className="hidden scale-100 transition-transform hover:scale-[1.03] sm:inline-flex">
-              Sign Up <ArrowRight className="h-4 w-4" />
+            <Button to="/login" variant="gold" size="sm" className="hidden whitespace-nowrap px-3 scale-100 transition-transform hover:scale-[1.03] sm:inline-flex sm:px-4">
+              Sign Up <ArrowRight className="hidden h-4 w-4 sm:block" />
             </Button>
             <button
               onClick={() => setOpen((o) => !o)}
@@ -88,7 +88,7 @@ export default function PublicLayout() {
           </div>
         </div>
         {open && (
-          <div className="border-t border-hairline bg-white px-6 py-4 xl:hidden">
+          <div className="border-t border-hairline bg-white px-4 py-4 sm:px-6 xl:hidden">
             <div className="flex flex-col gap-1">
               {nav.map((n) => (
                 <NavLink

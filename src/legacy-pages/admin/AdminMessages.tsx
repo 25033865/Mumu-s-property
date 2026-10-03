@@ -50,7 +50,7 @@ export default function AdminMessages() {
 
       {error && <p role="alert" className="mb-4 text-sm text-rose-300">{error}</p>}
 
-      <div className="grid h-[72vh] gap-4 lg:grid-cols-[320px_1fr]">
+      <div className="grid h-[calc(100dvh-12rem)] min-h-[22rem] min-w-0 gap-4 lg:h-[72vh] lg:grid-cols-[320px_minmax(0,1fr)]">
         {/* conversation list */}
         <div className={`${showChat ? "hidden lg:flex" : "flex"} flex-col overflow-hidden rounded-2xl border border-white/8 bg-white/[0.03]`}>
           <div className="border-b border-white/8 px-4 py-3">
@@ -85,7 +85,7 @@ export default function AdminMessages() {
         </div>
 
         {/* chat */}
-        <div className={`${showChat ? "flex" : "hidden lg:flex"} flex-col overflow-hidden rounded-2xl border border-white/8 bg-white/[0.03]`}>
+        <div className={`${showChat ? "flex" : "hidden lg:flex"} min-w-0 flex-col overflow-hidden rounded-2xl border border-white/8 bg-white/[0.03]`}>
           <div className="flex items-center gap-3 border-b border-white/8 px-5 py-4">
             <button onClick={() => setShowChat(false)} className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-white/60 hover:bg-white/10 lg:hidden">
               <ArrowLeft className="h-5 w-5" />

@@ -26,7 +26,7 @@ export default function AuthShell({
   children: ReactNode;
 }) {
   return (
-    <div className="grid min-h-full lg:grid-cols-2">
+    <div className="grid min-h-screen overflow-y-auto lg:grid-cols-2 lg:overflow-visible">
       {/* brand side */}
       <div className="relative hidden overflow-hidden bg-navy-950 p-12 text-white lg:flex lg:flex-col">
         <img src={HERO_IMG} alt="" className="absolute inset-0 h-full w-full object-cover opacity-25" />
@@ -55,11 +55,11 @@ export default function AuthShell({
 
       {/* form side */}
       <div className="flex flex-col bg-white">
-        <div className="flex items-center justify-between px-6 py-5 lg:px-12">
+        <div className="flex items-center justify-between px-4 py-5 sm:px-6 lg:px-12">
           <div className="lg:hidden"><Logo /></div>
           <Link to="/" className="font-mono ml-auto text-[12px] uppercase tracking-wider text-slate-ink hover:text-navy-900">← Back to site</Link>
         </div>
-        <div className="flex flex-1 items-center justify-center px-6 pb-12 lg:px-12">
+        <div className="flex flex-1 items-center justify-center px-4 pb-12 sm:px-6 lg:px-12">
           <div className="w-full max-w-md">
             <h1 className="font-display text-3xl font-extrabold tracking-tight text-navy-900">{title}</h1>
             <p className="mt-2 text-slate-ink">{subtitle}</p>
