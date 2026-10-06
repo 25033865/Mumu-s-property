@@ -5,7 +5,7 @@ import { Logo } from "./ui";
 import { HERO_IMG, trustIndicators } from "../data";
 
 export const authField =
-  "w-full rounded-lg border border-hairline bg-white px-4 py-3 text-sm text-navy-900 outline-none transition-colors placeholder:text-slate-ink/50 focus:border-navy-900 focus:ring-2 focus:ring-navy-900/10";
+  "w-full rounded-lg border border-hairline bg-white px-4 py-3 text-base text-navy-900 outline-none transition-colors placeholder:text-slate-ink/50 focus:border-navy-900 focus:ring-2 focus:ring-navy-900/10 sm:text-sm";
 export const authLabel = "font-mono mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-slate-ink";
 
 export default function AuthShell({
