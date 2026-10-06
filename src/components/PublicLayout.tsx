@@ -44,7 +44,7 @@ export default function PublicLayout() {
   }, [loc.pathname]);
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-white">
+    <div className="relative min-h-screen bg-white">
       {/* main nav */}
       <header
         className={`sticky top-0 z-50 transition-all duration-300 ${

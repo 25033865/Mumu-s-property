@@ -1,7 +1,8 @@
 import { Link } from "react-router-dom";
-import { ArrowRight, ArrowUpRight, Check, BadgeCheck, ShieldCheck, Boxes, Clock } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Check, BadgeCheck, ShieldCheck, Boxes, Clock, MapPin } from "lucide-react";
 import { Button, Eyebrow, Section, Badge } from "../components/ui";
 import { HERO_IMG, offerings, industries, advantages, stats, trustIndicators, procurement } from "../data";
+import CustomLocationMap from "../components/CustomLocationMap";
 
 const tiIcons = [BadgeCheck, ShieldCheck, Clock];
 
@@ -159,6 +160,41 @@ export default function Home() {
           </div>
         </div>
       </Section>
+
+      {/* LOCATION & MAP */}
+      <section className="bg-mist px-6 py-20 md:py-24">
+        <div className="mx-auto max-w-7xl">
+          <div className="grid gap-10 lg:grid-cols-[1fr_1.5fr] lg:items-center">
+            <div>
+              <Eyebrow>Operational base</Eyebrow>
+              <h2 className="font-display mt-4 text-3xl font-extrabold tracking-tight text-navy-900 md:text-4xl">
+                Strategic location & regional supply coverage
+              </h2>
+              <p className="mt-4 text-slate-ink leading-relaxed">
+                Headquartered in Lephalale, Limpopo, we are positioned right at the heart of South Africa's critical mining and industrial infrastructure to provide fast turnarounds and direct-to-site deliveries.
+              </p>
+              <div className="mt-6 space-y-3">
+                <div className="flex items-center gap-3 text-sm font-semibold text-navy-900">
+                  <MapPin className="h-5 w-5 text-gold-500" /> Lephalale, Limpopo (-23.6698, 27.7411)
+                </div>
+                <div className="flex items-center gap-3 text-sm text-slate-ink">
+                  <Check className="h-5 w-5 text-gold-500" /> Rapid response breakdown deliveries
+                </div>
+                <div className="flex items-center gap-3 text-sm text-slate-ink">
+                  <Check className="h-5 w-5 text-gold-500" /> On-site contractor accommodation support
+                </div>
+              </div>
+            </div>
+            <div>
+              <CustomLocationMap
+                lat={-23.6698}
+                lng={27.7411}
+                title="Lephalale, Limpopo"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* CTA */}
       <section className="px-6 pb-24">

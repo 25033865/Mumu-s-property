@@ -38,6 +38,7 @@ export const img = (id: string, w = 1200, h = 800) => {
 };
 
 export const HERO_IMG = img("hero", 1600, 1100);
+export const LOGO_IMG = "https://ihpbniqzqrrucnbzdnit.supabase.co/storage/v1/object/public/images/mumus.jpg";
 
 export const company = {
   name: "MUMUS PROPERTYS (PTY) LTD",
@@ -63,7 +64,7 @@ export const offerings = [
     icon: HardHat,
     title: "PPE & Occupational Safety",
     blurb: "Personal protective equipment and workplace safety products for high-risk environments.",
-    image: img("1578091879915-33fc8c00d0c9", 900, 650),
+    image: "https://ihpbniqzqrrucnbzdnit.supabase.co/storage/v1/object/public/images/PPE-1-scaled.jpeg",
     items: [
       "Safety helmets", "Dust masks", "Safety boots", "Safety gloves", "Safety goggles",
       "Face shields", "Reflective vests", "Workwear and overalls", "Respiratory protection",
@@ -77,7 +78,7 @@ export const offerings = [
     icon: Wrench,
     title: "Engineering & Mining Consumables",
     blurb: "Sourced and supplied according to client specifications for workshops and site operations.",
-    image: img("1530124566582-a618bc2615dc", 900, 650),
+    image: "https://ihpbniqzqrrucnbzdnit.supabase.co/storage/v1/object/public/images/ENGEENERING.jpg",
     items: [
       "Bearings", "Fasteners", "Bolts and nuts", "Washers", "Welding consumables",
       "Abrasives", "Hand tools", "Power tools", "Workshop consumables", "Lubrication products",
@@ -90,7 +91,7 @@ export const offerings = [
     icon: Gauge,
     title: "Pumps, Valves & Electric Motors",
     blurb: "Fluid-handling and rotating equipment with OEM / client technical specification sourcing.",
-    image: img("1620283085439-39620a1e21c4", 900, 650),
+    image: "https://ihpbniqzqrrucnbzdnit.supabase.co/storage/v1/object/public/images/pumps.jpg",
     items: [
       "Industrial pumps", "Water pumps", "Pump components", "Valves", "Pipe fittings",
       "Electric motors", "Motor components", "Mechanical equipment", "Fluid-handling equipment",
@@ -102,7 +103,7 @@ export const offerings = [
     icon: Zap,
     title: "Electrical Supplies",
     blurb: "Electrical products and consumables for installation, distribution and maintenance.",
-    image: img("1473341304170-971dccb5ac1e", 900, 650),
+    image: "https://ihpbniqzqrrucnbzdnit.supabase.co/storage/v1/object/public/images/electric-tools.jpg",
     items: [
       "Switchgear", "Distribution equipment", "Electrical accessories", "Lighting equipment",
       "Electrical tools", "Cable accessories", "Electrical maintenance consumables", "Electric motors",
@@ -114,7 +115,7 @@ export const offerings = [
     icon: Layers,
     title: "Insulation Materials & Plastics",
     blurb: "Thermal insulation and industrial plastics supplied to project specifications.",
-    image: img("1416879595882-3373a0480b5b", 900, 650),
+    image: "https://ihpbniqzqrrucnbzdnit.supabase.co/storage/v1/object/public/images/insulations.jpg",
     items: [
       "Insulation mattresses", "Pipe sections", "Insulation felts", "Insulation boards",
       "Ceramic fibre", "Loose wool / mineral wool insulation rolls", "Custom project insulation",
@@ -127,7 +128,7 @@ export const offerings = [
     icon: BedDouble,
     title: "Accommodation Services",
     blurb: "Tailored contractor accommodation for personnel brought into mining and industrial areas.",
-    image: img("1560448204-e02f11c3d0e2", 900, 650),
+    image: "https://ihpbniqzqrrucnbzdnit.supabase.co/storage/v1/object/public/images/accommodation.jpg",
     items: [
       "Mining personnel", "Contractors", "Project teams", "Engineers", "Maintenance teams",
       "Business travellers", "Short- & medium-term assignments",
