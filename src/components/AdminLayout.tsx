@@ -79,7 +79,7 @@ export default function AdminLayout() {
         }`}
       >
         <div className="flex items-center justify-between px-5 py-5">
-          <Logo variant="light" />
+          <Logo variant="light" clickable={false} />
           <button onClick={() => setOpen(false)} className="lg:hidden"><X className="h-5 w-5" /></button>
         </div>
         <div className="mx-4 mb-4 flex items-center gap-2 rounded-lg bg-gold-400/10 px-3 py-2 ring-1 ring-gold-400/20">

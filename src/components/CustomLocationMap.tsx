@@ -4,7 +4,7 @@ import { useState } from "react";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { Navigation, ExternalLink, Copy, Check } from "lucide-react";
+import { Navigation, ExternalLink } from "lucide-react";
 
 const customIcon = new L.Icon({
   iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
@@ -28,22 +28,15 @@ export default function CustomLocationMap({
   title = "Lephalale Base",
   address = "Lephalale, Limpopo, South Africa",
 }: CustomLocationMapProps) {
-  const [copied, setCopied] = useState(false);
   const position: [number, number] = [lat, lng];
 
   // Direct link to open Google Maps directions from user's location to coordinates
   const googleDirectionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
 
-  const handleCopyCoords = () => {
-    navigator.clipboard.writeText(`${lat}, ${lng}`);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
   return (
-    <div className="relative w-full rounded-2xl overflow-hidden border border-slate-200 shadow-md bg-slate-900 group">
+    <div className="relative isolate z-0 w-full overflow-hidden rounded-2xl border border-slate-200 bg-slate-900 shadow-md group">
       {/* MAP CONTAINER */}
-      <div className="w-full h-[380px] relative z-0">
+      <div className="relative z-0 h-[380px] w-full">
         <MapContainer
           center={position}
           zoom={13}
@@ -95,20 +88,6 @@ export default function CustomLocationMap({
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Copy Coordinates Button */}
-          <button
-            onClick={handleCopyCoords}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-medium text-slate-200 transition-colors"
-            title="Copy Coordinates"
-          >
-            {copied ? (
-              <Check className="w-3.5 h-3.5 text-green-400" />
-            ) : (
-              <Copy className="w-3.5 h-3.5" />
-            )}
-            <span>{copied ? "Copied" : "Coords"}</span>
-          </button>
-
           {/* Open Google Maps Directions */}
           <a
             href={googleDirectionsUrl}

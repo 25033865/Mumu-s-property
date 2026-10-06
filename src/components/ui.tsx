@@ -5,14 +5,16 @@ import { LOGO_IMG } from "../data";
 export function Logo({
   variant = "dark",
   className = "",
+  clickable = true,
 }: {
   variant?: "dark" | "light";
   className?: string;
+  clickable?: boolean;
 }) {
   const text = variant === "light" ? "text-white" : "text-navy-900";
   const sub = variant === "light" ? "text-white/50" : "text-slate-ink/70";
-  return (
-    <Link to="/" className={`group flex items-center gap-3 ${className}`}>
+  const content = (
+    <>
       <span
         aria-label="MUMUS PROPERTYS logo"
         className="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-lg bg-white"
@@ -27,8 +29,14 @@ export function Logo({
           Pty Ltd
         </span>
       </span>
-    </Link>
+    </>
   );
+
+  if (!clickable) {
+    return <div className={`flex items-center gap-3 ${className}`}>{content}</div>;
+  }
+
+  return <Link to="/" className={`group flex items-center gap-3 ${className}`}>{content}</Link>;
 }
 
 type BtnProps = {

@@ -47,7 +47,7 @@ export default function PublicLayout() {
     <div className="relative min-h-screen bg-white">
       {/* main nav */}
       <header
-        className={`sticky top-0 z-50 transition-all duration-300 ${
+        className={`sticky top-0 z-[1000] transition-all duration-300 ${
           scrolled ? "bg-white/90 shadow-[0_1px_0_rgba(0,0,0,.06)] backdrop-blur-md" : "bg-white"
         }`}
       >

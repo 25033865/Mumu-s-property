@@ -102,7 +102,7 @@ export default function PortalLayout() {
         }`}
       >
         <div className="flex items-center justify-between px-6 py-5">
-          <Logo variant="light" />
+          <Logo variant="light" clickable={false} />
           <button onClick={() => setOpen(false)} className="lg:hidden"><X className="h-5 w-5" /></button>
         </div>
         <nav className="flex-1 space-y-1 overflow-y-auto px-4 py-2">
