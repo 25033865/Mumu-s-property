@@ -41,6 +41,17 @@ body,
   height: 100%;
 }
 
+html,
+body {
+  background-color: #0b132b;
+  min-height: 100vh;
+  overscroll-behavior-y: none;
+}
+
+body {
+  min-height: 100dvh;
+}
+
 *,
 *::before,
 *::after {
