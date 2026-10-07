@@ -26,11 +26,12 @@ export default function Chat({
   const [preview, setPreview] = useState<Attachment | null>(null);
   const [deleteCandidateId, setDeleteCandidateId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const endRef = useRef<HTMLDivElement>(null);
+  const historyRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth" });
+    const history = historyRef.current;
+    history?.scrollTo({ top: history.scrollHeight, behavior: "smooth" });
   }, [messages.length, threadId]);
 
   const dark = theme === "dark";
@@ -64,8 +65,8 @@ export default function Chat({
   };
 
   return (
-    <div className="flex h-full min-h-0 min-w-0 flex-col">
-      <div className="flex-1 space-y-3 overflow-y-auto p-5">
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+      <div ref={historyRef} role="log" aria-label="Chat history" className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain p-4 sm:p-5">
         {messages.length === 0 && (
           <div className={`grid h-full place-items-center text-sm ${dark ? "text-white/40" : "text-slate-ink/60"}`}>
             No messages yet — say hello.
@@ -82,10 +83,10 @@ export default function Chat({
             : "bg-mist text-navy-900 rounded-bl-sm";
           return (
             <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
-              <div className="max-w-[78%]">
+              <div className="min-w-0 max-w-[85%] break-words sm:max-w-[78%]">
                 {editingId === m.id ? (
                   <div className="space-y-2">
-                    <textarea value={editingText} onChange={(event) => setEditingText(event.target.value)} rows={3} className="w-full min-w-56 rounded-lg border border-gold-400/50 bg-white px-3 py-2 text-sm text-navy-900 outline-none" />
+                    <textarea value={editingText} onChange={(event) => setEditingText(event.target.value)} rows={3} className="w-full min-w-0 rounded-lg border border-gold-400/50 bg-white px-3 py-2 text-sm text-navy-900 outline-none" />
                     <div className="flex justify-end gap-2">
                       <button type="button" onClick={() => { setEditingId(null); setEditingText(""); }} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-white/70"><X className="h-3 w-3" /> Cancel</button>
                       <button type="button" onClick={() => void saveEdit()} className="rounded-lg bg-gold-400 px-2 py-1 text-xs font-semibold text-navy-900">Save</button>
@@ -108,23 +109,23 @@ export default function Chat({
             </div>
           );
         })}
-        <div ref={endRef} />
       </div>
 
       {messageError && <p role="alert" className={`px-3 text-xs ${dark ? "text-rose-300" : "text-rose-600"}`}>{messageError}</p>}
 
-      {files.length > 0 && <div className={`border-t px-3 pt-3 text-xs ${dark ? "border-white/10 text-white/70" : "border-hairline text-slate-ink"}`}>
+      {files.length > 0 && <div className={`max-h-28 shrink-0 overflow-y-auto border-t px-3 py-3 text-xs ${dark ? "border-white/10 text-white/70" : "border-hairline text-slate-ink"}`}>
         <div className="mb-1 font-semibold">Selected files</div>
         <div className="flex flex-wrap gap-2">
           {files.map((file, index) => <span key={`${file.name}-${index}`} className="inline-flex max-w-full items-center gap-1 rounded-md bg-black/10 px-2 py-1"><span className="max-w-48 truncate">{file.name}</span><button type="button" onClick={() => setFiles((current) => current.filter((_, fileIndex) => fileIndex !== index))} aria-label={`Remove ${file.name}`}><X className="h-3 w-3" /></button></span>)}
         </div>
       </div>}
-      <form onSubmit={(event) => void submit(event)} className={`flex min-w-0 items-center gap-2 border-t p-3 ${dark ? "border-white/10" : "border-hairline"}`}>
+      <form onSubmit={(event) => void submit(event)} className={`flex min-w-0 shrink-0 items-center gap-2 border-t p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] ${dark ? "border-white/10" : "border-hairline"}`}>
         <button type="button" onClick={() => fileInputRef.current?.click()} className={`grid h-11 w-11 shrink-0 place-items-center rounded-lg border ${dark ? "border-white/10 text-white/60 hover:text-white" : "border-hairline text-slate-ink/70 hover:text-navy-900"}`} title="Attach files" aria-label="Attach files">
           <Paperclip className="h-4 w-4" />
         </button>
         <input ref={fileInputRef} type="file" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv" className="hidden" onChange={(event) => { const selected = Array.from(event.currentTarget.files ?? []); if (selected.length > 0) setFiles((current) => [...current, ...selected]); event.currentTarget.value = ""; }} />
         <input
+          aria-label="Message"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           placeholder={placeholder}
@@ -136,6 +137,7 @@ export default function Chat({
         />
         <button
           type="submit"
+          aria-label={sending ? "Sending message" : "Send message"}
           disabled={sending || (!draft.trim() && files.length === 0)}
           className="inline-flex h-11 shrink-0 items-center gap-2 rounded-lg bg-gold-400 px-3 text-sm font-semibold text-navy-900 transition-colors hover:bg-gold-300 disabled:opacity-40 sm:px-4"
         >
@@ -199,7 +201,7 @@ function AttachmentItem({ attachment, dark, onPreview }: { attachment: Attachmen
       <div className={`relative overflow-hidden rounded-xl ${dark ? "bg-black/25" : "bg-white/70"}`}>
         <button type="button" onClick={() => onPreview(attachment)} className="block w-full text-left" aria-label={`View ${attachment.fileName}`}>
           {url ? (
-            <img src={url} alt={attachment.fileName} className="block h-auto max-h-[360px] max-w-[min(72vw,420px)] rounded-xl object-contain" />
+            <img src={url} alt={attachment.fileName} className="block h-auto max-h-[360px] max-w-full w-[420px] rounded-xl object-contain" />
           ) : (
             <span className={`grid h-56 w-[min(72vw,420px)] max-w-full place-items-center rounded-xl ${dark ? "bg-white/10 text-white/60" : "bg-slate-900/10 text-slate-ink/60"}`}>
               <Image className="h-8 w-8" />

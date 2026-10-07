@@ -8,14 +8,15 @@ import { supabase } from "../../lib/supabaseClient";
 export default function AdminMessages() {
   const [threads, setThreads] = useState<Thread[]>([]);
   const [active, setActive] = useState<string | null>(null);
-  const [showChat, setShowChat] = useState(false); // mobile: list vs chat
   const [previews, setPreviews] = useState<Record<string, { text: string; ts: number; from: "client" | "admin" }>>({});
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
   const [searchParams] = useSearchParams();
   useEffect(() => {
     void supabase.from("message_threads").select("id, client_id").then(async ({ data, error: threadError }) => {
       if (threadError) {
         setError(threadError.message);
+        setLoading(false);
         return;
       }
       const clientIds = (data ?? []).map((thread) => thread.client_id);
@@ -31,39 +32,42 @@ export default function AdminMessages() {
       });
       setThreads(next);
       const requestedClientId = searchParams.get("client");
-      setActive(next.find((thread) => thread.userId === requestedClientId)?.id ?? next[0]?.id ?? null);
+      setActive(next.find((thread) => thread.userId === requestedClientId)?.id ?? null);
       const messages = await supabase.from("messages").select("thread_id, text, sender_role, created_at").order("created_at", { ascending: false });
       const nextPreviews: Record<string, { text: string; ts: number; from: "client" | "admin" }> = {};
       (messages.data ?? []).forEach((message) => { if (!nextPreviews[message.thread_id]) nextPreviews[message.thread_id] = { text: message.text, ts: new Date(message.created_at).getTime(), from: message.sender_role }; });
       setPreviews(nextPreviews);
+      setLoading(false);
     });
   }, [searchParams]);
   const activeThread = threads.find((thread) => thread.id === active);
   useEffect(() => { if (active) void markThreadRead(active); }, [active]);
 
   return (
-    <div className="text-white">
-      <div className="mb-6">
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col text-white">
+      {!activeThread && <div className="shrink-0 border-b border-white/8 px-4 py-5 sm:px-5 lg:px-8">
         <h1 className="font-display text-2xl font-extrabold tracking-tight md:text-3xl">Client messages</h1>
         <p className="mt-1 text-sm text-white/50">Reply to clients directly. Messages sync live to their portal.</p>
-      </div>
+      </div>}
 
-      {error && <p role="alert" className="mb-4 text-sm text-rose-300">{error}</p>}
+      {error && <p role="alert" className="shrink-0 px-4 py-3 text-sm text-rose-300">{error}</p>}
 
-      <div className="grid h-[calc(100dvh-12rem)] min-h-[22rem] min-w-0 gap-4 lg:h-[72vh] lg:grid-cols-[320px_minmax(0,1fr)]">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         {/* conversation list */}
-        <div className={`${showChat ? "hidden lg:flex" : "flex"} flex-col overflow-hidden rounded-2xl border border-white/8 bg-white/[0.03]`}>
+        {!activeThread && <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-white/[0.03]">
           <div className="border-b border-white/8 px-4 py-3">
             <span className="font-mono text-[11px] uppercase tracking-wider text-white/40">Conversations</span>
           </div>
-          <div className="flex-1 overflow-y-auto">
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            {loading && <p role="status" className="px-4 py-6 text-sm text-white/50">Loading conversations...</p>}
+            {!loading && threads.length === 0 && <p className="px-4 py-6 text-sm text-white/50">No client conversations yet.</p>}
             {threads.map((t) => {
               const last = previews[t.id];
               const isActive = t.id === active;
               return (
                 <button
                   key={t.id}
-                  onClick={() => { setActive(t.id); setShowChat(true); }}
+                  onClick={() => setActive(t.id)}
                   className={`flex w-full items-start gap-3 border-b border-white/5 px-4 py-3.5 text-left transition-colors ${
                     isActive ? "bg-gold-400/10" : "hover:bg-white/[0.03]"
                   }`}
@@ -74,7 +78,8 @@ export default function AdminMessages() {
                       <span className="truncate text-[13px] font-semibold">{t.client}</span>
                       {last && <span className="font-mono shrink-0 text-[10px] text-white/35">{formatTime(last.ts)}</span>}
                     </div>
-                    <div className="truncate text-[12px] text-white/45">
+                    <div className="mt-0.5 truncate text-[12px] text-white/60">{t.company}</div>
+                    <div className="mt-1 truncate text-[12px] text-white/45">
                       {last ? `${last.from === "admin" ? "You: " : ""}${last.text}` : "No messages yet"}
                     </div>
                   </div>
@@ -82,24 +87,24 @@ export default function AdminMessages() {
               );
             })}
           </div>
-        </div>
+        </div>}
 
         {/* chat */}
-        <div className={`${showChat ? "flex" : "hidden lg:flex"} min-w-0 flex-col overflow-hidden rounded-2xl border border-white/8 bg-white/[0.03]`}>
-          <div className="flex items-center gap-3 border-b border-white/8 px-5 py-4">
-            <button onClick={() => setShowChat(false)} className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-white/60 hover:bg-white/10 lg:hidden">
+        {activeThread && <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white/[0.03]">
+          <div className="flex shrink-0 items-center gap-3 border-b border-white/8 px-4 py-4 sm:px-5">
+            <button type="button" onClick={() => setActive(null)} aria-label="Back to client list" className="grid h-11 w-11 shrink-0 place-items-center rounded-lg text-white/60 hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-gold-400">
               <ArrowLeft className="h-5 w-5" />
             </button>
-            <span className="grid h-11 w-11 place-items-center rounded-full bg-gold-400 text-navy-900">
+            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-gold-400 text-navy-900">
               <MessageSquare className="h-5 w-5" />
             </span>
-            <div className="min-w-0">
-              <div className="font-display text-sm font-bold">{activeThread?.client ?? "Select a conversation"}</div>
-              <div className="text-[12px] text-white/45">{activeThread?.company ?? (activeThread ? "Company not provided" : "No client conversations yet")}</div>
+            <div className="min-w-0 flex-1">
+              <div className="font-display break-words text-sm font-bold">{activeThread?.client ?? "Select a conversation"}</div>
+              <div className="truncate text-[12px] text-white/45">{activeThread?.company ?? (activeThread ? "Company not provided" : "No client conversations yet")}</div>
             </div>
           </div>
-          {activeThread && <Chat threadId={activeThread.id} self="admin" theme="dark" placeholder="Reply to this client…" />}
-        </div>
+          {activeThread && <Chat key={activeThread.id} threadId={activeThread.id} self="admin" theme="dark" placeholder="Reply to this client…" />}
+        </div>}
       </div>
     </div>
   );

@@ -19,14 +19,14 @@ export default function Messages() {
   }, []);
   useEffect(() => { if (threadId) void markThreadRead(threadId); }, [threadId]);
   return (
-    <div className="space-y-6">
-      <div>
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+      <div className="shrink-0 border-b border-hairline px-4 py-5 sm:px-5 lg:px-8">
         <h1 className="font-display text-2xl font-extrabold tracking-tight text-navy-900 md:text-3xl">Support & messages</h1>
         <p className="mt-1 text-sm text-slate-ink">Direct line to the MUMUS PROPERTYS team about your RFQs, quotes and deliveries.</p>
       </div>
 
-      <div className="flex h-[calc(100dvh-12rem)] min-h-[22rem] min-w-0 flex-col overflow-hidden rounded-2xl border border-hairline bg-white shadow-sm md:h-[70vh]">
-        <div className="flex items-center gap-3 border-b border-hairline px-5 py-4">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white">
+        <div className="flex shrink-0 items-center gap-3 border-b border-hairline px-5 py-4">
           <span className="grid h-11 w-11 place-items-center rounded-full bg-navy-900 text-gold-400">
             <Headset className="h-5 w-5" />
           </span>
