@@ -1,6 +1,6 @@
 import { Headset, Circle } from "lucide-react";
 import Chat from "../../components/Chat";
-import { ADMIN_NAME, markThreadRead } from "../../messaging";
+import { ADMIN_NAME } from "../../messaging";
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
 
@@ -17,7 +17,6 @@ export default function Messages() {
       }
     });
   }, []);
-  useEffect(() => { if (threadId) void markThreadRead(threadId); }, [threadId]);
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col">
       <div className="shrink-0 border-b border-hairline px-4 py-5 sm:px-5 lg:px-8">
@@ -37,7 +36,7 @@ export default function Messages() {
             </div>
           </div>
         </div>
-        {threadId ? <Chat threadId={threadId} self="client" theme="light" placeholder="Message the MUMUS team…" /> : <div className="grid flex-1 place-items-center text-sm text-slate-ink/60">Loading conversation...</div>}
+        {threadId ? <Chat key={threadId} threadId={threadId} self="client" theme="light" placeholder="Message the MUMUS team…" /> : <div className="grid flex-1 place-items-center text-sm text-slate-ink/60">Loading conversation...</div>}
       </div>
     </div>
   );

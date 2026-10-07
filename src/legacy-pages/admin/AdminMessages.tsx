@@ -2,16 +2,16 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { MessageSquare, ArrowLeft } from "lucide-react";
 import Chat from "../../components/Chat";
-import { formatTime, markThreadRead, type Thread } from "../../messaging";
+import { formatTime, useConversationSummaries, type Thread } from "../../messaging";
 import { supabase } from "../../lib/supabaseClient";
 
 export default function AdminMessages() {
   const [threads, setThreads] = useState<Thread[]>([]);
   const [active, setActive] = useState<string | null>(null);
-  const [previews, setPreviews] = useState<Record<string, { text: string; ts: number; from: "client" | "admin" }>>({});
+  const { summaries: previews, error: summaryError } = useConversationSummaries("admin");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   useEffect(() => {
     void supabase.from("message_threads").select("id, client_id").then(async ({ data, error: threadError }) => {
       if (threadError) {
@@ -33,15 +33,10 @@ export default function AdminMessages() {
       setThreads(next);
       const requestedClientId = searchParams.get("client");
       setActive(next.find((thread) => thread.userId === requestedClientId)?.id ?? null);
-      const messages = await supabase.from("messages").select("thread_id, text, sender_role, created_at").order("created_at", { ascending: false });
-      const nextPreviews: Record<string, { text: string; ts: number; from: "client" | "admin" }> = {};
-      (messages.data ?? []).forEach((message) => { if (!nextPreviews[message.thread_id]) nextPreviews[message.thread_id] = { text: message.text, ts: new Date(message.created_at).getTime(), from: message.sender_role }; });
-      setPreviews(nextPreviews);
       setLoading(false);
     });
   }, [searchParams]);
   const activeThread = threads.find((thread) => thread.id === active);
-  useEffect(() => { if (active) void markThreadRead(active); }, [active]);
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col text-white">
@@ -50,7 +45,7 @@ export default function AdminMessages() {
         <p className="mt-1 text-sm text-white/50">Reply to clients directly. Messages sync live to their portal.</p>
       </div>}
 
-      {error && <p role="alert" className="shrink-0 px-4 py-3 text-sm text-rose-300">{error}</p>}
+      {(error || summaryError) && <p role="alert" className="shrink-0 px-4 py-3 text-sm text-rose-300">{error || summaryError}</p>}
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         {/* conversation list */}
@@ -83,6 +78,7 @@ export default function AdminMessages() {
                       {last ? `${last.from === "admin" ? "You: " : ""}${last.text}` : "No messages yet"}
                     </div>
                   </div>
+                  {!!last?.unread && <span aria-label={`${last.unread} unread messages`} className="ml-auto grid h-6 min-w-6 shrink-0 place-items-center self-center rounded-full bg-gold-400 px-1 text-[11px] font-bold text-navy-900">{last.unread > 99 ? "99+" : last.unread}</span>}
                 </button>
               );
             })}
@@ -92,7 +88,7 @@ export default function AdminMessages() {
         {/* chat */}
         {activeThread && <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white/[0.03]">
           <div className="flex shrink-0 items-center gap-3 border-b border-white/8 px-4 py-4 sm:px-5">
-            <button type="button" onClick={() => setActive(null)} aria-label="Back to client list" className="grid h-11 w-11 shrink-0 place-items-center rounded-lg text-white/60 hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-gold-400">
+            <button type="button" onClick={() => { setActive(null); if (searchParams.has("client")) { const next = new URLSearchParams(searchParams); next.delete("client"); setSearchParams(next, { replace: true }); } }} aria-label="Back to client list" className="grid h-11 w-11 shrink-0 place-items-center rounded-lg text-white/60 hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-gold-400">
               <ArrowLeft className="h-5 w-5" />
             </button>
             <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-gold-400 text-navy-900">

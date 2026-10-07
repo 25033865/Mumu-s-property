@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { Download, FileText, Image, Paperclip, Pencil, Send, Trash2, X } from "lucide-react";
-import { canModifyMessage, deleteMessage, editMessage, useThread, sendMessage, formatTime, type Attachment, type Sender } from "../messaging";
+import { canModifyMessage, deleteMessage, editMessage, useThread, sendMessage, markThreadRead, formatTime, type Attachment, type Sender, type Message } from "../messaging";
 import { supabase } from "../lib/supabaseClient";
 import { downloadStorageFile } from "../lib/downloadFile";
+
+type OutgoingMessage = Message & { status: "sending" | "sent" | "failed"; files: File[]; fileIds: string[]; error?: string };
 
 export default function Chat({
   threadId,
@@ -15,7 +17,12 @@ export default function Chat({
   theme?: "light" | "dark";
   placeholder?: string;
 }) {
-  const messages = useThread(threadId);
+  const { messages: confirmedMessages, upsertMessage, error: connectionError } = useThread(threadId);
+  const [outgoing, setOutgoing] = useState<OutgoingMessage[]>([]);
+  const messages: (Message & { status?: OutgoingMessage["status"]; error?: string })[] = [
+    ...confirmedMessages.filter((message) => !outgoing.some((item) => item.id === message.id)),
+    ...outgoing,
+  ].sort((a, b) => a.ts - b.ts || a.id.localeCompare(b.id));
   const [draft, setDraft] = useState("");
   const [senderId, setSenderId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -28,24 +35,74 @@ export default function Chat({
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const historyRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const nearBottom = useRef(true);
+  const inFlight = useRef(new Set<string>());
+  const [readError, setReadError] = useState("");
+  const [readRetry, setReadRetry] = useState(0);
+  const unreadKey = confirmedMessages.filter((message) => message.from !== self && !message.readAt).map((message) => message.id).sort().join(",");
+
+  useEffect(() => {
+    setOutgoing((current) => current.filter((item) => item.status !== "sent" || !confirmedMessages.some((message) => message.id === item.id)));
+  }, [confirmedMessages]);
+
+  useEffect(() => {
+    if (!unreadKey) { setReadError(""); return; }
+    let active = true;
+    let marking = false;
+    const mark = async () => {
+      if (document.visibilityState !== "visible" || marking) return;
+      marking = true;
+      try {
+        const { error } = await markThreadRead(threadId, unreadKey.split(","));
+        if (!active) return;
+        if (error) setReadError(error.message);
+        else setReadError("");
+      } catch (cause) {
+        if (active) setReadError(cause instanceof Error ? cause.message : "Could not mark messages as read.");
+      } finally { marking = false; }
+    };
+    void mark();
+    window.addEventListener("focus", mark);
+    document.addEventListener("visibilitychange", mark);
+    return () => { active = false; window.removeEventListener("focus", mark); document.removeEventListener("visibilitychange", mark); };
+  }, [threadId, unreadKey, readRetry]);
 
   useEffect(() => {
     const history = historyRef.current;
-    history?.scrollTo({ top: history.scrollHeight, behavior: "smooth" });
-  }, [messages.length, threadId]);
+    if (history && nearBottom.current) history.scrollTo({ top: history.scrollHeight, behavior: "auto" });
+  }, [messages, threadId]);
 
   const dark = theme === "dark";
   useEffect(() => { void supabase.auth.getUser().then(({ data }) => setSenderId(data.user?.id ?? null)); }, []);
 
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!senderId) return;
+  const deliver = async (message: OutgoingMessage) => {
+    if (!senderId || inFlight.current.has(message.id)) return;
+    inFlight.current.add(message.id);
     setSending(true);
+    setOutgoing((current) => current.map((item) => item.id === message.id ? { ...item, status: "sending", error: undefined } : item));
+    const result = await sendMessage(threadId, senderId, self, message.text, message.files, message.id, message.fileIds);
+    if (result.error) {
+      setOutgoing((current) => current.map((item) => item.id === message.id ? { ...item, status: "failed", error: result.error.message } : item));
+    } else if (result.message) {
+      upsertMessage(result.message);
+      setOutgoing((current) => current.map((item) => item.id === message.id ? { ...item, ...result.message, status: "sent" } : item));
+    }
+    inFlight.current.delete(message.id);
+    setSending(inFlight.current.size > 0);
+  };
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!senderId || sending || (!draft.trim() && files.length === 0)) return;
+    const message: OutgoingMessage = {
+      id: crypto.randomUUID(), threadId, from: self, text: draft.trim() || files.map((file) => file.name).join(", "),
+      ts: Date.now(), attachments: [], readAt: null, status: "sending", files, fileIds: files.map(() => crypto.randomUUID()),
+    };
+    setOutgoing((current) => [...current, message]);
+    setDraft("");
+    setFiles([]);
     setMessageError("");
-    const { error } = await sendMessage(threadId, senderId, self, draft, files);
-    if (error) setMessageError(error.message);
-    else { setDraft(""); setFiles([]); }
-    setSending(false);
+    void deliver(message);
   };
 
   const saveEdit = async () => {
@@ -66,7 +123,7 @@ export default function Chat({
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-      <div ref={historyRef} role="log" aria-label="Chat history" className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain p-4 sm:p-5">
+      <div ref={historyRef} onScroll={(event) => { const history = event.currentTarget; nearBottom.current = history.scrollHeight - history.scrollTop - history.clientHeight < 100; }} onLoadCapture={() => { const history = historyRef.current; if (history && nearBottom.current) history.scrollTop = history.scrollHeight; }} role="log" aria-label="Chat history" className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain p-4 sm:p-5">
         {messages.length === 0 && (
           <div className={`grid h-full place-items-center text-sm ${dark ? "text-white/40" : "text-slate-ink/60"}`}>
             No messages yet — say hello.
@@ -82,7 +139,7 @@ export default function Chat({
             ? "bg-white/10 text-white rounded-bl-sm"
             : "bg-mist text-navy-900 rounded-bl-sm";
           return (
-            <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
+            <div key={m.id} data-message-id={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
               <div className="min-w-0 max-w-[85%] break-words sm:max-w-[78%]">
                 {editingId === m.id ? (
                   <div className="space-y-2">
@@ -96,12 +153,15 @@ export default function Chat({
                   {displayText && <div>{displayText}</div>}
                   {m.attachments.length > 0 && <div className={`${displayText ? "mt-2 border-t border-white/15 pt-2" : ""} space-y-2`}>{m.attachments.map((attachment) => <AttachmentItem key={attachment.id} attachment={attachment} dark={dark} onPreview={setPreview} />)}</div>}
                 </div>}
-                {mine && canModifyMessage(m) && editingId !== m.id && (
+                {mine && (!m.status || m.status === "sent") && canModifyMessage(m) && editingId !== m.id && (
                   <div className="mt-1 flex justify-end gap-2">
                     <button type="button" onClick={() => { setEditingId(m.id); setEditingText(m.text); setMessageError(""); }} className={`inline-flex items-center gap-1 text-[10px] ${dark ? "text-white/45 hover:text-white" : "text-slate-ink/50 hover:text-navy-900"}`}><Pencil className="h-3 w-3" /> Edit</button>
                     <button type="button" onClick={() => { setDeleteCandidateId(m.id); setMessageError(""); }} className={`inline-flex items-center gap-1 text-[10px] ${dark ? "text-white/45 hover:text-rose-300" : "text-slate-ink/50 hover:text-rose-600"}`}><Trash2 className="h-3 w-3" /> Delete</button>
                   </div>
                 )}
+                {mine && <div className={`mt-1 text-right text-[11px] ${m.status === "failed" ? "text-rose-400" : dark ? "text-white/50" : "text-slate-ink/60"}`}>
+                  {m.status === "sending" ? <span role="status">Sending...</span> : m.status === "failed" ? <><span role="alert">{m.error || "Message failed."}</span> <button type="button" onClick={() => { const item = outgoing.find((item) => item.id === m.id); if (item) void deliver(item); }} className="ml-2 font-semibold underline" aria-label="Retry message">Retry</button></> : "Sent"}
+                </div>}
                 <div className={`font-mono mt-1 text-[10px] ${mine ? "text-right" : "text-left"} ${dark ? "text-white/35" : "text-slate-ink/50"}`}>
                   {m.from === "admin" ? "MUMUS Support" : "Client"} · {formatTime(m.ts)}
                 </div>
@@ -111,6 +171,8 @@ export default function Chat({
         })}
       </div>
 
+      {connectionError && <p role="alert" className={`shrink-0 px-3 py-1 text-xs ${dark ? "text-rose-300" : "text-rose-600"}`}>{connectionError}</p>}
+      {readError && <p role="alert" className={`shrink-0 px-3 py-1 text-xs ${dark ? "text-rose-300" : "text-rose-600"}`}>Could not mark messages as read. <button type="button" onClick={() => setReadRetry((value) => value + 1)} className="underline">Retry</button></p>}
       {messageError && <p role="alert" className={`px-3 text-xs ${dark ? "text-rose-300" : "text-rose-600"}`}>{messageError}</p>}
 
       {files.length > 0 && <div className={`max-h-28 shrink-0 overflow-y-auto border-t px-3 py-3 text-xs ${dark ? "border-white/10 text-white/70" : "border-hairline text-slate-ink"}`}>
@@ -138,7 +200,7 @@ export default function Chat({
         <button
           type="submit"
           aria-label={sending ? "Sending message" : "Send message"}
-          disabled={sending || (!draft.trim() && files.length === 0)}
+          disabled={!senderId || sending || (!draft.trim() && files.length === 0)}
           className="inline-flex h-11 shrink-0 items-center gap-2 rounded-lg bg-gold-400 px-3 text-sm font-semibold text-navy-900 transition-colors hover:bg-gold-300 disabled:opacity-40 sm:px-4"
         >
           <Send className="h-4 w-4" /> <span className="hidden sm:inline">{sending ? "Sending..." : "Send"}</span>
