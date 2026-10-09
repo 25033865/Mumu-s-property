@@ -82,7 +82,7 @@ export default function CustomLocationMap({
               {title}
             </p>
             <p className="text-[11px] font-mono text-slate-300 mt-1">
-              {lat}, {lng}
+              Mumus Property
             </p>
           </div>
         </div>

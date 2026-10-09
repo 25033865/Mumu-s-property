@@ -2,6 +2,7 @@ import { useState } from "react";
 import { MapPin, Phone, Mail, Clock, Upload, CheckCircle2, Send } from "lucide-react";
 import { Button, Eyebrow } from "../components/ui";
 import PageHero from "../components/PageHero";
+import CustomLocationMap from "../components/CustomLocationMap";
 import { company, industries, supplierMatrix } from "../data";
 
 const field =
@@ -130,19 +131,7 @@ export default function Contact() {
                 ))}
               </ul>
             </div>
-            {/* map placeholder */}
-            <div className="relative h-64 overflow-hidden rounded-3xl border border-hairline bg-mist">
-              <div className="absolute inset-0 opacity-90" style={{ backgroundImage: "linear-gradient(#e4e7ee 1px, transparent 1px), linear-gradient(90deg, #e4e7ee 1px, transparent 1px)", backgroundSize: "28px 28px" }} />
-              <div className="absolute inset-0 grid place-items-center">
-                <div className="flex flex-col items-center text-center">
-                  <span className="grid h-12 w-12 place-items-center rounded-full bg-gold-400 text-navy-900 shadow-lg">
-                    <MapPin className="h-6 w-6" />
-                  </span>
-                  <span className="mt-3 text-sm font-semibold text-navy-900">Lephalale, Limpopo</span>
-                  <span className="font-mono text-[11px] text-slate-ink">-23.6698, 27.7411</span>
-                </div>
-              </div>
-            </div>
+            <CustomLocationMap title="Lephalale, Limpopo" />
           </div>
         </div>
       </section>

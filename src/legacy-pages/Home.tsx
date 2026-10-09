@@ -175,7 +175,7 @@ export default function Home() {
               </p>
               <div className="mt-6 space-y-3">
                 <div className="flex items-center gap-3 text-sm font-semibold text-navy-900">
-                  <MapPin className="h-5 w-5 text-gold-500" /> Lephalale, Limpopo (-23.6698, 27.7411)
+                  <MapPin className="h-5 w-5 text-gold-500" /> Mumus Property · Lephalale, Limpopo
                 </div>
                 <div className="flex items-center gap-3 text-sm text-slate-ink">
                   <Check className="h-5 w-5 text-gold-500" /> Rapid response breakdown deliveries

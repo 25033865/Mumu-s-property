@@ -4,13 +4,12 @@ import PageHero from "../components/PageHero";
 import { industries, img } from "../data";
 
 const imgs = [
-  img("1601574465779-76d6dbb88557", 800, 600),
-  img("1581092160607-ee22621dd758", 800, 600),
-  img("1503387762-592deb58ef4e", 800, 600),
-  img("1565043666747-69f6646db940", 800, 600),
-  img("1486406146926-c627a92ad1ab", 800, 600),
+  "https://ihpbniqzqrrucnbzdnit.supabase.co/storage/v1/object/public/images/mining.jpg",
+  "https://ihpbniqzqrrucnbzdnit.supabase.co/storage/v1/object/public/images/engg.jpg",
+  "https://ihpbniqzqrrucnbzdnit.supabase.co/storage/v1/object/public/images/engee%20indus.webp",
+  "https://ihpbniqzqrrucnbzdnit.supabase.co/storage/v1/object/public/images/industury.jpg",
+  "https://ihpbniqzqrrucnbzdnit.supabase.co/storage/v1/object/public/images/Gemini_Generated_Image_swtbalswtbalswtb.jpg",
 ];
-
 export default function Industries() {
   return (
     <>

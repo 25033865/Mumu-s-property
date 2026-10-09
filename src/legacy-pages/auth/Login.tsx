@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useLocation, useNavigate, Link } from "react-router-dom";
 import { Eye, EyeOff, LogIn, ShieldCheck } from "lucide-react";
 import AuthShell, { authField, authLabel } from "../../components/AuthShell";
 import { Button } from "../../components/ui";
@@ -7,6 +7,7 @@ import { supabase } from "../../lib/supabaseClient";
 
 export default function Login() {
   const nav = useNavigate();
+  const location = useLocation();
   const [showPassword, setShowPassword] = useState(false);
   const [isFormComplete, setIsFormComplete] = useState(false);
   const [error, setError] = useState("");
@@ -26,7 +27,7 @@ export default function Login() {
               setError(signInError.message === "Email not confirmed" ? "Please verify your email before signing in." : signInError.message);
               return;
             }
-            nav("/portal");
+            nav(location.state?.returnTo === "/hse" ? "/hse" : "/portal", { replace: true });
           }).finally(() => setIsSubmitting(false));
         }}
         onInput={(e) => setIsFormComplete(e.currentTarget.checkValidity())}

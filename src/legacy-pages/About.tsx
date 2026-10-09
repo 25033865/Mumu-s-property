@@ -1,6 +1,7 @@
 import { Target, Compass, Eye, ShieldCheck, ArrowRight, Boxes } from "lucide-react";
 import { Button, Eyebrow, Section, Badge } from "../components/ui";
 import PageHero from "../components/PageHero";
+import AboutPeople from "../components/AboutPeople";
 import { company, advantages, stats, procurement, img } from "../data";
 
 export default function About() {
@@ -52,6 +53,8 @@ export default function About() {
           </div>
         </div>
       </Section>
+
+      <AboutPeople />
 
       {/* Vision / Mission / Objective */}
       <section className="bg-navy-950 px-6 py-20 text-white md:py-24">
