@@ -11,6 +11,7 @@ import {
   MessageSquare, BarChart3, LogOut, Menu, X, Search, ShieldCheck,
 } from "lucide-react";
 import { Logo } from "./ui";
+import useMessagingViewport from "./useMessagingViewport";
 import { getCurrentUserRole, supabase } from "../lib/supabaseClient";
 
 const nav = [
@@ -30,6 +31,7 @@ export default function AdminLayout() {
   const [unreadMessages, setUnreadMessages] = useState(0);
   const loc = useLocation();
   const isMessagesPage = loc.pathname.replace(/\/$/, "") === "/admin/messages";
+  const messagingViewportRef = useMessagingViewport(isMessagesPage && !authChecking);
   const nav2 = useNavigate();
   useEffect(() => setOpen(false), [loc.pathname]);
   useEffect(() => {
@@ -73,7 +75,7 @@ export default function AdminLayout() {
   if (authChecking) return <div className="grid min-h-screen place-items-center bg-[#0a1020] text-sm text-white/60">Checking your account...</div>;
 
   return (
-    <div className={`flex min-w-0 bg-[#0a1020] ${isMessagesPage ? "h-dvh overflow-hidden" : "min-h-screen overflow-x-hidden"}`}>
+    <div ref={messagingViewportRef} className={`flex min-w-0 bg-[#0a1020] ${isMessagesPage ? "messaging-shell overflow-hidden" : "min-h-screen overflow-x-hidden"}`}>
       <aside
         className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-white/5 bg-navy-950 text-white transition-transform lg:static lg:shrink-0 lg:translate-x-0 ${
           open ? "translate-x-0" : "-translate-x-full"

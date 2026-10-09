@@ -72,6 +72,16 @@ export default function Chat({
     if (history && nearBottom.current) history.scrollTo({ top: history.scrollHeight, behavior: "auto" });
   }, [messages, threadId]);
 
+  useEffect(() => {
+    const history = historyRef.current;
+    if (!history) return;
+    const observer = new ResizeObserver(() => {
+      if (nearBottom.current) history.scrollTop = history.scrollHeight;
+    });
+    observer.observe(history);
+    return () => observer.disconnect();
+  }, [threadId]);
+
   const dark = theme === "dark";
   useEffect(() => { void supabase.auth.getUser().then(({ data }) => setSenderId(data.user?.id ?? null)); }, []);
 
@@ -123,7 +133,7 @@ export default function Chat({
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-      <div ref={historyRef} onScroll={(event) => { const history = event.currentTarget; nearBottom.current = history.scrollHeight - history.scrollTop - history.clientHeight < 100; }} onLoadCapture={() => { const history = historyRef.current; if (history && nearBottom.current) history.scrollTop = history.scrollHeight; }} role="log" aria-label="Chat history" className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain p-4 sm:p-5">
+      <div ref={historyRef} onScroll={(event) => { const history = event.currentTarget; nearBottom.current = history.scrollHeight - history.scrollTop - history.clientHeight < 100; }} onLoadCapture={() => { const history = historyRef.current; if (history && nearBottom.current) history.scrollTop = history.scrollHeight; }} role="log" aria-label="Chat history" className="min-h-0 min-w-0 flex-1 space-y-3 overflow-x-hidden overflow-y-auto overscroll-contain p-3 sm:p-5">
         {messages.length === 0 && (
           <div className={`grid h-full place-items-center text-sm ${dark ? "text-white/40" : "text-slate-ink/60"}`}>
             No messages yet — say hello.
@@ -140,7 +150,7 @@ export default function Chat({
             : "bg-mist text-navy-900 rounded-bl-sm";
           return (
             <div key={m.id} data-message-id={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
-              <div className="min-w-0 max-w-[85%] break-words sm:max-w-[78%]">
+              <div className="min-w-0 max-w-[90%] [overflow-wrap:anywhere] sm:max-w-[78%]">
                 {editingId === m.id ? (
                   <div className="space-y-2">
                     <textarea value={editingText} onChange={(event) => setEditingText(event.target.value)} rows={3} className="w-full min-w-0 rounded-lg border border-gold-400/50 bg-white px-3 py-2 text-sm text-navy-900 outline-none" />
@@ -155,8 +165,8 @@ export default function Chat({
                 </div>}
                 {mine && (!m.status || m.status === "sent") && canModifyMessage(m) && editingId !== m.id && (
                   <div className="mt-1 flex justify-end gap-2">
-                    <button type="button" onClick={() => { setEditingId(m.id); setEditingText(m.text); setMessageError(""); }} className={`inline-flex items-center gap-1 text-[10px] ${dark ? "text-white/45 hover:text-white" : "text-slate-ink/50 hover:text-navy-900"}`}><Pencil className="h-3 w-3" /> Edit</button>
-                    <button type="button" onClick={() => { setDeleteCandidateId(m.id); setMessageError(""); }} className={`inline-flex items-center gap-1 text-[10px] ${dark ? "text-white/45 hover:text-rose-300" : "text-slate-ink/50 hover:text-rose-600"}`}><Trash2 className="h-3 w-3" /> Delete</button>
+                    <button type="button" onClick={() => { setEditingId(m.id); setEditingText(m.text); setMessageError(""); }} className={`inline-flex min-h-11 items-center gap-1 px-2 text-xs sm:min-h-0 sm:px-0 sm:text-[10px] ${dark ? "text-white/45 hover:text-white" : "text-slate-ink/50 hover:text-navy-900"}`}><Pencil className="h-3 w-3" /> Edit</button>
+                    <button type="button" onClick={() => { setDeleteCandidateId(m.id); setMessageError(""); }} className={`inline-flex min-h-11 items-center gap-1 px-2 text-xs sm:min-h-0 sm:px-0 sm:text-[10px] ${dark ? "text-white/45 hover:text-rose-300" : "text-slate-ink/50 hover:text-rose-600"}`}><Trash2 className="h-3 w-3" /> Delete</button>
                   </div>
                 )}
                 {mine && <div className={`mt-1 text-right text-[11px] ${m.status === "failed" ? "text-rose-400" : dark ? "text-white/50" : "text-slate-ink/60"}`}>
@@ -191,7 +201,7 @@ export default function Chat({
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           placeholder={placeholder}
-          className={`min-w-0 flex-1 rounded-lg px-4 py-2.5 text-sm outline-none ${
+          className={`h-11 min-w-0 flex-1 rounded-lg px-3 py-2.5 text-base outline-none sm:px-4 sm:text-sm ${
             dark
               ? "border border-white/10 bg-white/5 text-white placeholder:text-white/40 focus:border-gold-400/50"
               : "border border-hairline bg-white text-navy-900 placeholder:text-slate-ink/50 focus:border-navy-900 focus:ring-2 focus:ring-navy-900/10"
@@ -201,7 +211,7 @@ export default function Chat({
           type="submit"
           aria-label={sending ? "Sending message" : "Send message"}
           disabled={!senderId || sending || (!draft.trim() && files.length === 0)}
-          className="inline-flex h-11 shrink-0 items-center gap-2 rounded-lg bg-gold-400 px-3 text-sm font-semibold text-navy-900 transition-colors hover:bg-gold-300 disabled:opacity-40 sm:px-4"
+          className="inline-flex h-11 min-w-11 shrink-0 items-center justify-center gap-2 rounded-lg bg-gold-400 px-3 text-sm font-semibold text-navy-900 transition-colors hover:bg-gold-300 disabled:opacity-40 sm:px-4"
         >
           <Send className="h-4 w-4" /> <span className="hidden sm:inline">{sending ? "Sending..." : "Send"}</span>
         </button>

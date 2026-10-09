@@ -6,6 +6,7 @@ import {
   UserRound, UserCog, Trash2,
 } from "lucide-react";
 import { Logo } from "./ui";
+import useMessagingViewport from "./useMessagingViewport";
 import { supabase } from "../lib/supabaseClient";
 
 const nav: { to: string; label: string; icon: typeof LayoutDashboard; end?: boolean; disabled?: boolean }[] = [
@@ -28,6 +29,7 @@ export default function PortalLayout() {
   const [accountInitials, setAccountInitials] = useState("U");
   const loc = useLocation();
   const isMessagesPage = loc.pathname.replace(/\/$/, "") === "/portal/messages";
+  const messagingViewportRef = useMessagingViewport(isMessagesPage && !authChecking);
   const nav2 = useNavigate();
   useEffect(() => {
     setOpen(false);
@@ -95,7 +97,7 @@ export default function PortalLayout() {
   if (authChecking) return <div className="grid min-h-screen place-items-center bg-mist text-sm text-slate-ink">Checking your account...</div>;
 
   return (
-    <div className={`flex min-w-0 bg-mist ${isMessagesPage ? "h-dvh overflow-hidden" : "min-h-screen overflow-x-hidden"}`}>
+    <div ref={messagingViewportRef} className={`flex min-w-0 bg-mist ${isMessagesPage ? "messaging-shell overflow-hidden" : "min-h-screen overflow-x-hidden"}`}>
       {/* sidebar */}
       <aside
         className={`fixed inset-y-0 left-0 z-50 flex w-72 flex-col bg-navy-950 text-white transition-transform lg:static lg:shrink-0 lg:translate-x-0 ${

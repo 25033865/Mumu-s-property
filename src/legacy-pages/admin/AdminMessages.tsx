@@ -40,9 +40,9 @@ export default function AdminMessages() {
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col text-white">
-      {!activeThread && <div className="shrink-0 border-b border-white/8 px-4 py-5 sm:px-5 lg:px-8">
-        <h1 className="font-display text-2xl font-extrabold tracking-tight md:text-3xl">Client messages</h1>
-        <p className="mt-1 text-sm text-white/50">Reply to clients directly. Messages sync live to their portal.</p>
+      {!activeThread && <div className="messaging-intro shrink-0 border-b border-white/8 px-4 py-3 sm:px-5 sm:py-5 lg:px-8">
+        <h1 className="font-display text-xl font-extrabold tracking-tight sm:text-2xl md:text-3xl">Client messages</h1>
+        <p className="mt-1 hidden text-sm text-white/50 sm:block">Reply to clients directly. Messages sync live to their portal.</p>
       </div>}
 
       {(error || summaryError) && <p role="alert" className="shrink-0 px-4 py-3 text-sm text-rose-300">{error || summaryError}</p>}
@@ -70,8 +70,8 @@ export default function AdminMessages() {
                   <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/8 text-[12px] font-bold">{t.initials}</span>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="truncate text-[13px] font-semibold">{t.client}</span>
-                      {last && <span className="font-mono shrink-0 text-[10px] text-white/35">{formatTime(last.ts)}</span>}
+                      <span className="min-w-0 truncate text-[13px] font-semibold">{t.client}</span>
+                      {last && <span className="font-mono max-w-[45%] shrink-0 truncate text-[10px] text-white/35">{formatTime(last.ts)}</span>}
                     </div>
                     <div className="mt-0.5 truncate text-[12px] text-white/60">{t.company}</div>
                     <div className="mt-1 truncate text-[12px] text-white/45">
@@ -87,15 +87,15 @@ export default function AdminMessages() {
 
         {/* chat */}
         {activeThread && <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white/[0.03]">
-          <div className="flex shrink-0 items-center gap-3 border-b border-white/8 px-4 py-4 sm:px-5">
+          <div className="flex shrink-0 items-center gap-2 border-b border-white/8 px-3 py-2 sm:gap-3 sm:px-5 sm:py-4">
             <button type="button" onClick={() => { setActive(null); if (searchParams.has("client")) { const next = new URLSearchParams(searchParams); next.delete("client"); setSearchParams(next, { replace: true }); } }} aria-label="Back to client list" className="grid h-11 w-11 shrink-0 place-items-center rounded-lg text-white/60 hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-gold-400">
               <ArrowLeft className="h-5 w-5" />
             </button>
-            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-gold-400 text-navy-900">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gold-400 text-navy-900 sm:h-11 sm:w-11">
               <MessageSquare className="h-5 w-5" />
             </span>
             <div className="min-w-0 flex-1">
-              <div className="font-display break-words text-sm font-bold">{activeThread?.client ?? "Select a conversation"}</div>
+              <div className="font-display truncate text-sm font-bold">{activeThread?.client ?? "Select a conversation"}</div>
               <div className="truncate text-[12px] text-white/45">{activeThread?.company ?? (activeThread ? "Company not provided" : "No client conversations yet")}</div>
             </div>
           </div>

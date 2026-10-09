@@ -19,20 +19,20 @@ export default function Messages() {
   }, []);
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-      <div className="shrink-0 border-b border-hairline px-4 py-5 sm:px-5 lg:px-8">
-        <h1 className="font-display text-2xl font-extrabold tracking-tight text-navy-900 md:text-3xl">Support & messages</h1>
-        <p className="mt-1 text-sm text-slate-ink">Direct line to the MUMUS PROPERTYS team about your RFQs, quotes and deliveries.</p>
+      <div className="messaging-intro shrink-0 border-b border-hairline px-4 py-3 sm:px-5 sm:py-5 lg:px-8">
+        <h1 className="font-display text-xl font-extrabold tracking-tight text-navy-900 sm:text-2xl md:text-3xl">Support & messages</h1>
+        <p className="mt-1 hidden text-sm text-slate-ink sm:block">Direct line to the MUMUS PROPERTYS team about your RFQs, quotes and deliveries.</p>
       </div>
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white">
-        <div className="flex shrink-0 items-center gap-3 border-b border-hairline px-5 py-4">
-          <span className="grid h-11 w-11 place-items-center rounded-full bg-navy-900 text-gold-400">
+        <div className="flex shrink-0 items-center gap-3 border-b border-hairline px-3 py-2 sm:px-5 sm:py-4">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-navy-900 text-gold-400 sm:h-11 sm:w-11">
             <Headset className="h-5 w-5" />
           </span>
           <div className="min-w-0 flex-1">
-            <div className="font-display text-sm font-bold text-navy-900">{ADMIN_NAME}</div>
-            <div className="flex items-center gap-1.5 text-[12px] text-emerald-600">
-              <Circle className="h-2 w-2 fill-current" /> Online · replies within minutes
+            <div className="font-display truncate text-sm font-bold text-navy-900">{ADMIN_NAME}</div>
+            <div className="flex flex-wrap items-center gap-1.5 text-[12px] text-emerald-600">
+              <Circle className="h-2 w-2 shrink-0 fill-current" /> Online <span className="hidden sm:inline">· replies within minutes</span>
             </div>
           </div>
         </div>

@@ -51,6 +51,38 @@ body {
   min-height: 100dvh;
 }
 
+.messaging-shell {
+  height: 100dvh;
+}
+
+@media (max-width: 1023px) {
+  .messaging-shell {
+    position: fixed;
+    inset-inline: 0;
+    top: var(--messaging-top, 0px);
+    height: var(--messaging-height, 100dvh);
+    container: messaging / size;
+  }
+
+  .messaging-shell > div > header {
+    padding-top: max(0.5rem, env(safe-area-inset-top));
+    padding-bottom: 0.5rem;
+  }
+
+  .messaging-shell > div > header > button {
+    display: grid;
+    width: 44px;
+    height: 44px;
+    place-items: center;
+  }
+}
+
+@container messaging (max-height: 450px) {
+  .messaging-intro {
+    display: none;
+  }
+}
+
 *,
 *::before,
 *::after {
