@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Download, FileText, Image, Paperclip, Pencil, Send, Trash2, X } from "lucide-react";
 import { canModifyMessage, deleteMessage, editMessage, useThread, sendMessage, markThreadRead, formatTime, type Attachment, type Sender, type Message } from "../messaging";
 import { supabase } from "../lib/supabaseClient";
 import { downloadStorageFile } from "../lib/downloadFile";
+import useChatScroll from "./useChatScroll";
 
 type OutgoingMessage = Message & { status: "sending" | "sent" | "failed"; files: File[]; fileIds: string[]; error?: string };
 
@@ -19,10 +20,10 @@ export default function Chat({
 }) {
   const { messages: confirmedMessages, upsertMessage, error: connectionError } = useThread(threadId);
   const [outgoing, setOutgoing] = useState<OutgoingMessage[]>([]);
-  const messages: (Message & { status?: OutgoingMessage["status"]; error?: string })[] = [
+  const messages = useMemo<(Message & { status?: OutgoingMessage["status"]; error?: string })[]>(() => [
     ...confirmedMessages.filter((message) => !outgoing.some((item) => item.id === message.id)),
     ...outgoing,
-  ].sort((a, b) => a.ts - b.ts || a.id.localeCompare(b.id));
+  ].sort((a, b) => a.ts - b.ts || a.id.localeCompare(b.id)), [confirmedMessages, outgoing]);
   const [draft, setDraft] = useState("");
   const [senderId, setSenderId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -33,9 +34,8 @@ export default function Chat({
   const [preview, setPreview] = useState<Attachment | null>(null);
   const [deleteCandidateId, setDeleteCandidateId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const historyRef = useRef<HTMLDivElement>(null);
+  const { historyRef, contentRef, scrollToLatest } = useChatScroll(threadId, messages);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const nearBottom = useRef(true);
   const inFlight = useRef(new Set<string>());
   const [readError, setReadError] = useState("");
   const [readRetry, setReadRetry] = useState(0);
@@ -67,21 +67,6 @@ export default function Chat({
     return () => { active = false; window.removeEventListener("focus", mark); document.removeEventListener("visibilitychange", mark); };
   }, [threadId, unreadKey, readRetry]);
 
-  useEffect(() => {
-    const history = historyRef.current;
-    if (history && nearBottom.current) history.scrollTo({ top: history.scrollHeight, behavior: "auto" });
-  }, [messages, threadId]);
-
-  useEffect(() => {
-    const history = historyRef.current;
-    if (!history) return;
-    const observer = new ResizeObserver(() => {
-      if (nearBottom.current) history.scrollTop = history.scrollHeight;
-    });
-    observer.observe(history);
-    return () => observer.disconnect();
-  }, [threadId]);
-
   const dark = theme === "dark";
   useEffect(() => { void supabase.auth.getUser().then(({ data }) => setSenderId(data.user?.id ?? null)); }, []);
 
@@ -112,6 +97,7 @@ export default function Chat({
     setDraft("");
     setFiles([]);
     setMessageError("");
+    scrollToLatest();
     void deliver(message);
   };
 
@@ -133,9 +119,10 @@ export default function Chat({
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-      <div ref={historyRef} onScroll={(event) => { const history = event.currentTarget; nearBottom.current = history.scrollHeight - history.scrollTop - history.clientHeight < 100; }} onLoadCapture={() => { const history = historyRef.current; if (history && nearBottom.current) history.scrollTop = history.scrollHeight; }} role="log" aria-label="Chat history" className="min-h-0 min-w-0 flex-1 space-y-3 overflow-x-hidden overflow-y-auto overscroll-contain p-3 sm:p-5">
+      <div ref={historyRef} role="log" aria-label="Chat history" tabIndex={0} className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain p-3 sm:p-5">
+        <div ref={contentRef} className="flex min-h-full flex-col gap-3">
         {messages.length === 0 && (
-          <div className={`grid h-full place-items-center text-sm ${dark ? "text-white/40" : "text-slate-ink/60"}`}>
+          <div className={`grid flex-1 place-items-center text-sm ${dark ? "text-white/40" : "text-slate-ink/60"}`}>
             No messages yet — say hello.
           </div>
         )}
@@ -149,7 +136,7 @@ export default function Chat({
             ? "bg-white/10 text-white rounded-bl-sm"
             : "bg-mist text-navy-900 rounded-bl-sm";
           return (
-            <div key={m.id} data-message-id={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
+            <div key={m.id} data-message-id={m.id} className={`flex shrink-0 ${mine ? "justify-end" : "justify-start"}`}>
               <div className="min-w-0 max-w-[90%] [overflow-wrap:anywhere] sm:max-w-[78%]">
                 {editingId === m.id ? (
                   <div className="space-y-2">
@@ -179,6 +166,7 @@ export default function Chat({
             </div>
           );
         })}
+        </div>
       </div>
 
       {connectionError && <p role="alert" className={`shrink-0 px-3 py-1 text-xs ${dark ? "text-rose-300" : "text-rose-600"}`}>{connectionError}</p>}
