@@ -1,7 +1,7 @@
 import { ArrowRight } from "lucide-react";
 import { Button, Eyebrow, Section } from "../components/ui";
 import PageHero from "../components/PageHero";
-import { industries, img } from "../data";
+import { industries } from "../data";
 
 const imgs = [
   "https://ihpbniqzqrrucnbzdnit.supabase.co/storage/v1/object/public/images/mining.jpg",
@@ -18,7 +18,8 @@ export default function Industries() {
         crumb="Target Industries"
         title="Built for demanding environments"
         subtitle="We understand the operational realities of the sectors we serve — uptime, compliance and safety are non-negotiable."
-        image={img("1581092160607-ee22621dd758", 1600, 600)}
+        image="https://ihpbniqzqrrucnbzdnit.supabase.co/storage/v1/object/public/images/target%20indu.jpg"
+        overlay="soft"
       />
 
       <Section>

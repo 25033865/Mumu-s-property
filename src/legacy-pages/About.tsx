@@ -12,7 +12,8 @@ export default function About() {
         crumb="About Us"
         title="A single-source industrial supply partner"
         subtitle="MUMUS PROPERTYS (PTY) LTD supplies mining, engineering, construction and industrial clients with PPE, consumables, equipment, materials and contractor accommodation."
-        image={img("1533558701576-23c65e0272fb", 1600, 600)}
+        image="https://ihpbniqzqrrucnbzdnit.supabase.co/storage/v1/object/public/images/about%20us.jpg"
+        overlay="soft"
       />
 
       {/* Who we are */}

@@ -10,18 +10,20 @@ export default function PageHero({
   subtitle,
   crumb,
   image = img("1513828583688-c52646db42da", 1600, 600),
+  overlay = "dark",
 }: {
   eyebrow: string;
   title: ReactNode;
   subtitle: string;
   crumb: string;
   image?: string;
+  overlay?: "dark" | "soft";
 }) {
   return (
     <section className="relative overflow-hidden bg-navy-950 text-white">
       <div className="absolute inset-0">
-        <img src={image} alt="" className="h-full w-full object-cover opacity-25" />
-        <div className="absolute inset-0 bg-gradient-to-r from-navy-950 via-navy-950/90 to-navy-900/60" />
+        <img src={image} alt="" className={`h-full w-full object-cover ${overlay === "soft" ? "opacity-70" : "opacity-25"}`} />
+        <div className={`absolute inset-0 bg-gradient-to-r ${overlay === "soft" ? "from-navy-950/90 via-navy-950/75 to-navy-900/45" : "from-navy-950 via-navy-950/90 to-navy-900/60"}`} />
       </div>
       <div className="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 md:py-24">
         <nav className="font-mono flex items-center gap-1.5 text-[12px] text-white/45">

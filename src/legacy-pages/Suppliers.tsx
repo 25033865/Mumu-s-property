@@ -15,6 +15,8 @@ export default function Suppliers() {
       <PageHero
         eyebrow="Supplier Category Matrix"
         crumb="Supplier Categories"
+        image="https://ihpbniqzqrrucnbzdnit.supabase.co/storage/v1/object/public/images/supplier%20cate.jpg"
+        overlay="soft"
         title="Twelve categories, one supplier"
         subtitle="A quick reference to everything MUMUS PROPERTYS can procure and deliver across your operation."
       />

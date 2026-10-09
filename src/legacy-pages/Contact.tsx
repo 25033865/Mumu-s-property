@@ -20,7 +20,8 @@ export default function Contact() {
         crumb="Contact / RFQ"
         title="Submit a Request for Quotation"
         subtitle="Send us your line items and specifications. Our team responds rapidly — with urgent breakdown support available 24/7."
-        image="https://images.unsplash.com/photo-1497366216548-37526070297c?w=1600&h=600&fit=crop&auto=format&q=80"
+        image="https://ihpbniqzqrrucnbzdnit.supabase.co/storage/v1/object/public/images/contact.jpg"
+        overlay="soft"
       />
 
       <section className="px-6 py-20 md:py-24">

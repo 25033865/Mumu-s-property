@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { ShieldCheck, FileText, CheckCircle2, Download } from "lucide-react";
 import { Button, Eyebrow, Section } from "../components/ui";
 import PageHero from "../components/PageHero";
-import { hsePillars, img } from "../data";
+import { hsePillars } from "../data";
 import requestHseDocuments from "../lib/requestHseDocuments";
 
 export default function Hse() {
@@ -36,7 +36,8 @@ export default function Hse() {
         crumb="HSE & Quality"
         title="Health, safety, environment & quality first"
         subtitle="We recognise that HSE and quality are fundamental when operating within mining, construction and industrial environments."
-        image={img("1504328345606-18bbc8c9d7d1", 1600, 600)}
+        image="https://ihpbniqzqrrucnbzdnit.supabase.co/storage/v1/object/public/images/hse%20and%20qual.jpg"
+        overlay="soft"
       />
 
       <Section>

@@ -15,6 +15,8 @@ export default function Offerings() {
       <PageHero
         eyebrow="Core Offerings — Full Product Catalog"
         crumb="Core Offerings"
+        image="https://ihpbniqzqrrucnbzdnit.supabase.co/storage/v1/object/public/images/core%20off.jpg"
+        overlay="soft"
         title="Everything we source and supply"
         subtitle="Six core business areas covering the complete range of industrial supplies, equipment, PPE and accommodation solutions."
       />

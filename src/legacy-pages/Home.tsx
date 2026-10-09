@@ -12,8 +12,8 @@ export default function Home() {
       {/* HERO */}
       <section className="relative overflow-hidden bg-navy-950 text-white">
         <div className="absolute inset-0">
-          <img src={HERO_IMG} alt="Mining and industrial operation" className="h-full w-full object-cover opacity-40" />
-          <div className="absolute inset-0 bg-gradient-to-r from-navy-950 via-navy-950/85 to-navy-950/30" />
+          <img src={HERO_IMG} alt="Mining and industrial operation" className="h-full w-full object-cover opacity-70" />
+          <div className="absolute inset-0 bg-gradient-to-r from-navy-950/90 via-navy-950/75 to-navy-950/45" />
           <div className="absolute inset-0 bg-gradient-to-t from-navy-950 via-transparent to-transparent" />
         </div>
         <div className="relative mx-auto grid max-w-7xl gap-14 px-6 pb-24 pt-20 lg:grid-cols-[1.15fr_.85fr] lg:pt-24">

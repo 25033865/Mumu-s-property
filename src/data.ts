@@ -37,7 +37,7 @@ export const img = (id: string, w = 1200, h = 800) => {
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 };
 
-export const HERO_IMG = img("hero", 1600, 1100);
+export const HERO_IMG = "https://ihpbniqzqrrucnbzdnit.supabase.co/storage/v1/object/public/images/home.jpg";
 export const LOGO_IMG = "https://ihpbniqzqrrucnbzdnit.supabase.co/storage/v1/object/public/images/mumus.jpg";
 
 export const company = {
