@@ -109,8 +109,8 @@ export default function About() {
           </div>
         </div>
         <div className="mt-12 flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-mist p-8">
-          <div className="flex items-center gap-3">
-            <Badge tone="gold">Let's talk</Badge>
+          <div className="flex min-w-0 flex-col items-start gap-3 sm:flex-row sm:items-center">
+            <span className="shrink-0 whitespace-nowrap"><Badge tone="gold">Let's talk</Badge></span>
             <span className="text-lg font-semibold text-navy-900">Ready to work with a partner you can rely on?</span>
           </div>
           <Button to="/contact" variant="primary">Request a Quote <ArrowRight className="h-4 w-4" /></Button>

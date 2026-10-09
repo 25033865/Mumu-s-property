@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Link,
   NavLink,
@@ -7,7 +7,6 @@ import {
 } from "react-router-dom";
 import {
   Menu,
-  X,
   ArrowRight,
   Phone,
   Mail,
@@ -18,17 +17,19 @@ import { company } from "../data";
 
 const nav = [
   { to: "/", label: "Home", end: true },
-  { to: "/about", label: "About Us" },
   { to: "/offerings", label: "Core Offerings" },
   { to: "/industries", label: "Target Industries" },
   { to: "/hse", label: "HSE & Quality" },
   { to: "/suppliers", label: "Supplier Categories" },
   { to: "/contact", label: "Contact / RFQ" },
+  { to: "/about", label: "About Us" },
 ];
 
 export default function PublicLayout() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
+  const headerRef = useRef<HTMLElement>(null);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
   const loc = useLocation();
 
   useEffect(() => {
@@ -43,16 +44,36 @@ export default function PublicLayout() {
     window.scrollTo(0, 0);
   }, [loc.pathname]);
 
+  useEffect(() => {
+    if (!open) return;
+    const dismissOutside = (event: PointerEvent) => {
+      if (!headerRef.current?.contains(event.target as Node)) setOpen(false);
+    };
+    const dismissOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setOpen(false);
+        menuButtonRef.current?.focus();
+      }
+    };
+    document.addEventListener("pointerdown", dismissOutside);
+    document.addEventListener("keydown", dismissOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", dismissOutside);
+      document.removeEventListener("keydown", dismissOnEscape);
+    };
+  }, [open]);
+
   return (
     <div className="relative min-h-screen bg-white">
       {/* main nav */}
       <header
+        ref={headerRef}
         className={`sticky top-0 z-[1000] transition-all duration-300 ${
           scrolled ? "bg-white/90 shadow-[0_1px_0_rgba(0,0,0,.06)] backdrop-blur-md" : "bg-white"
         }`}
       >
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-1 px-4 py-3 sm:gap-2 sm:px-6">
-          <Logo />
+        <div className="relative mx-auto flex max-w-7xl items-center justify-between gap-1 px-3 py-3 sm:gap-2 sm:px-6">
+          <Logo className="max-sm:gap-2 max-sm:[&>span:last-child>span:first-child]:text-[clamp(10px,3.5vw,15px)]" />
           <nav className="hidden items-center gap-0.5 xl:flex">
             {nav.map((n) => (
               <NavLink
@@ -74,41 +95,41 @@ export default function PublicLayout() {
               </NavLink>
             ))}
           </nav>
-          <div className="flex items-center gap-2">
-            <Button to="/login" variant="gold" size="sm" className="hidden whitespace-nowrap px-3 scale-100 transition-transform hover:scale-[1.03] sm:inline-flex sm:px-4">
+          <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+            <Button to="/login" variant="gold" size="sm" className="order-2 whitespace-nowrap max-sm:px-2.5 scale-100 transition-transform hover:scale-[1.03] xl:order-1">
               Sign Up <ArrowRight className="hidden h-4 w-4 sm:block" />
             </Button>
             <button
+              ref={menuButtonRef}
               onClick={() => setOpen((o) => !o)}
-              className="grid h-10 w-10 place-items-center rounded-lg text-navy-900 hover:bg-navy-900/5 xl:hidden"
-              aria-label="Menu"
+              className="order-1 grid h-10 w-10 place-items-center rounded-lg text-slate-ink hover:bg-navy-900/5 focus-visible:outline-2 focus-visible:outline-gold-400 xl:hidden"
+              aria-label={open ? "Close navigation" : "Open navigation"}
+              aria-expanded={open}
+              aria-controls="mobile-navigation"
             >
-              {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              <Menu className="h-7 w-7" />
             </button>
           </div>
-        </div>
         {open && (
-          <div className="border-t border-hairline bg-white px-4 py-4 sm:px-6 xl:hidden">
-            <div className="flex flex-col gap-1">
+          <nav id="mobile-navigation" aria-label="Mobile navigation" className="absolute right-0 top-full w-[220px] max-w-[calc(100vw-24px)] max-h-[calc(100dvh-68px)] overflow-y-auto border-t border-hairline bg-white py-3 shadow-[0_4px_12px_rgba(0,0,0,0.10)] sm:right-6 xl:hidden">
+            <div className="flex flex-col">
               {nav.map((n) => (
                 <NavLink
                   key={n.to}
                   to={n.to}
                   end={n.end}
+                  onClick={() => setOpen(false)}
                   className={({ isActive }) =>
-                    `rounded-lg px-3 py-2.5 text-[15px] font-medium ${isActive ? "bg-navy-900/5 text-navy-900" : "text-slate-ink"}`
+                    `px-4 py-2.5 text-[15px] font-normal transition-colors hover:bg-mist focus-visible:bg-mist ${isActive ? "text-navy-900" : "text-slate-ink"}`
                   }
                 >
                   {n.label}
                 </NavLink>
               ))}
-              <div className="mt-3 flex flex-col gap-2">
-                <Button to="/login" variant="gold" full>Sign Up</Button>
-                <Button to="/contact" variant="outline" full>Submit RFQ</Button>
-              </div>
             </div>
-          </div>
+          </nav>
         )}
+        </div>
       </header>
 
       <main>
