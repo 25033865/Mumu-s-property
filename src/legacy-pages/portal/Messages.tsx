@@ -1,11 +1,13 @@
-import { Headset, Circle } from "lucide-react";
+import { Headset } from "lucide-react";
 import Chat from "../../components/Chat";
 import { ADMIN_NAME } from "../../messaging";
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
+import useClientSupportAgent from "../../clientSupportAgent";
 
 export default function Messages() {
   const [threadId, setThreadId] = useState<string | null>(null);
+  const { agent, error: agentError, handoff, retry } = useClientSupportAgent(threadId);
   useEffect(() => {
     void supabase.auth.getUser().then(async ({ data }) => {
       if (!data.user) return;
@@ -31,11 +33,13 @@ export default function Messages() {
           </span>
           <div className="min-w-0 flex-1">
             <div className="font-display truncate text-sm font-bold text-navy-900">{ADMIN_NAME}</div>
-            <div className="flex flex-wrap items-center gap-1.5 text-[12px] text-emerald-600">
-              <Circle className="h-2 w-2 shrink-0 fill-current" /> Online <span className="hidden sm:inline">· replies within minutes</span>
+            <div role="status" aria-live="polite" className={`mt-0.5 text-[12px] ${agent?.is_assigned && agent.status === "open" ? "text-emerald-600" : "text-slate-ink/70"}`}>
+              {!agent ? agentError ? "Support messages" : "Checking support details..." : agent.status === "resolved" ? "Conversation resolved. Send a message if you need more help." : agent.is_assigned ? `You're chatting with ${agent.first_name ?? "a support agent"} from MUMUS Support.` : "Waiting for a support agent."}
             </div>
           </div>
         </div>
+        {handoff && <p role="status" aria-live="polite" className="shrink-0 border-b border-emerald-100 bg-emerald-50 px-4 py-2 text-xs text-emerald-700">{handoff}</p>}
+        {agentError && <p role="alert" className="shrink-0 px-4 py-2 text-xs text-slate-ink">{agentError} <button type="button" onClick={retry} className="font-semibold underline">Retry</button></p>}
         {threadId ? <Chat key={threadId} threadId={threadId} self="client" theme="light" placeholder="Message the MUMUS team…" /> : <div className="grid flex-1 place-items-center text-sm text-slate-ink/60">Loading conversation...</div>}
       </div>
     </div>
