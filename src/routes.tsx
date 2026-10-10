@@ -31,6 +31,7 @@ import AdminMessages from "./legacy-pages/admin/AdminMessages";
 import AdminQuotations from "./legacy-pages/admin/AdminQuotations";
 import AdminDocuments from "./legacy-pages/admin/AdminDocuments";
 import AdminAnalytics from "./legacy-pages/admin/AdminAnalytics";
+import AdminProfile from "./legacy-pages/admin/AdminProfile";
 import NotFound from "./legacy-pages/NotFound";
 
 export const routeConfig = [
@@ -81,6 +82,7 @@ export const routeConfig = [
       { path: "quotations", Component: AdminQuotations },
       { path: "documents", Component: AdminDocuments },
       { path: "analytics", Component: AdminAnalytics },
+      { path: "account/profile", Component: AdminProfile },
     ],
   },
   { path: "*", Component: NotFound },

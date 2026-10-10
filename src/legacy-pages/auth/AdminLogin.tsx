@@ -53,7 +53,11 @@ return (
                 return;
             }
 
-            nav("/admin");
+            const { data: account } = await supabase.auth.getUser();
+            const { data: profile } = account.user
+              ? await supabase.from("profiles").select("first_name, last_name").eq("user_id", account.user.id).maybeSingle()
+              : { data: null };
+            nav(profile?.first_name?.trim() && profile?.last_name?.trim() ? "/admin" : "/admin/account/profile");
             })
             .finally(() => setIsSubmitting(false));
         }}

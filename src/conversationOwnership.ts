@@ -48,7 +48,8 @@ export default function useConversationOwnership() {
     const poll = window.setInterval(() => void load(), 10000);
     const focused = () => void load();
     window.addEventListener("focus", focused);
-    return () => { active = false; clearInterval(poll); window.removeEventListener("focus", focused); void supabase.removeChannel(channel); };
+    window.addEventListener("profile-updated", focused);
+    return () => { active = false; clearInterval(poll); window.removeEventListener("focus", focused); window.removeEventListener("profile-updated", focused); void supabase.removeChannel(channel); };
   }, [refresh]);
 
   const act = useCallback(async (threadId: string, action: ConversationAction, target?: string) => {

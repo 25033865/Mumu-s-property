@@ -2,12 +2,13 @@ import { useState, useEffect } from "react";
 import { NavLink, Outlet, useLocation, useNavigate, Link } from "react-router-dom";
 import {
   LayoutDashboard, FilePlus2, ClipboardList, ReceiptText, BedDouble,
-  FileText, MessageSquare, Bell, LogOut, Menu, X, Search, ChevronDown,
+  FileText, MessageSquare, LogOut, Menu, X, Search, ChevronDown,
   UserRound, UserCog, Trash2,
 } from "lucide-react";
 import { Logo } from "./ui";
 import useMessagingViewport from "./useMessagingViewport";
 import { supabase } from "../lib/supabaseClient";
+import ClientNotificationBell from "./ClientNotificationBell";
 
 const nav: { to: string; label: string; icon: typeof LayoutDashboard; end?: boolean; disabled?: boolean }[] = [
   { to: "/portal", label: "Dashboard Overview", icon: LayoutDashboard, end: true },
@@ -180,10 +181,7 @@ export default function PortalLayout() {
             <input placeholder="Search requests, quotes, documents…" className="w-full rounded-lg border border-hairline bg-mist py-2 pl-9 pr-3 text-sm outline-none focus:border-navy-900 focus:bg-white" />
           </div>
           <div className="ml-auto flex items-center gap-3">
-            <button className="relative grid h-10 w-10 place-items-center rounded-lg text-slate-ink hover:bg-mist">
-              <Bell className="h-5 w-5" />
-              <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-gold-400 ring-2 ring-white" />
-            </button>
+            <ClientNotificationBell />
             <Link to="/portal/account/personal-details" className="flex items-center gap-2.5 rounded-lg py-1 pl-1 pr-3 hover:bg-mist" aria-label="Open personal details">
               <span className="grid h-9 w-9 place-items-center rounded-full bg-navy-900 text-sm font-bold text-white">{accountInitials}</span>
               <span className="hidden text-left sm:block">

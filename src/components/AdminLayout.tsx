@@ -8,7 +8,7 @@ import {
 } from "react-router-dom";
 import {
   LayoutGrid, Users, ClipboardList, ReceiptText, BedDouble, FileText,
-  MessageSquare, BarChart3, LogOut, Menu, X, Search, ShieldCheck,
+  MessageSquare, BarChart3, LogOut, Menu, X, Search, ShieldCheck, UserRound,
 } from "lucide-react";
 import { Logo } from "./ui";
 import useMessagingViewport from "./useMessagingViewport";
@@ -23,17 +23,41 @@ const nav = [
   { to: "/admin/messages", label: "Messages", icon: MessageSquare },
   { to: "/admin/documents", label: "Documents", icon: FileText },
   { to: "/admin/analytics", label: "Analytics", icon: BarChart3 },
+  { to: "/admin/account/profile", label: "My profile", icon: UserRound },
 ];
 
 export default function AdminLayout() {
   const [open, setOpen] = useState(false);
   const [authChecking, setAuthChecking] = useState(true);
   const [unreadMessages, setUnreadMessages] = useState(0);
+  const [accountName, setAccountName] = useState("My profile");
+  const [accountInitials, setAccountInitials] = useState("MP");
+  const [needsName, setNeedsName] = useState(false);
   const loc = useLocation();
   const isMessagesPage = loc.pathname.replace(/\/$/, "") === "/admin/messages";
   const messagingViewportRef = useMessagingViewport(isMessagesPage && !authChecking);
   const nav2 = useNavigate();
   useEffect(() => setOpen(false), [loc.pathname]);
+  useEffect(() => {
+    if (authChecking) return;
+    let active = true;
+    const load = async () => {
+      const { data } = await supabase.auth.getUser();
+      if (!data.user) return;
+      const { data: profile, error } = await supabase.from("profiles").select("first_name, last_name").eq("user_id", data.user.id).maybeSingle();
+      if (!active || error) return;
+      const first = profile?.first_name?.trim() ?? "";
+      const last = profile?.last_name?.trim() ?? "";
+      setAccountName([first, last].filter(Boolean).join(" ") || "My profile");
+      setAccountInitials([first, last].filter(Boolean).map((name) => name[0]).join("").toUpperCase() || "MP");
+      setNeedsName(!first || !last);
+    };
+    const refresh = () => { void load().catch(() => {}); };
+    refresh();
+    window.addEventListener("profile-updated", refresh);
+    window.addEventListener("focus", refresh);
+    return () => { active = false; window.removeEventListener("profile-updated", refresh); window.removeEventListener("focus", refresh); };
+  }, [authChecking]);
   useEffect(() => {
     let active = true;
     const loadUnread = async () => {
@@ -122,9 +146,10 @@ export default function AdminLayout() {
           </div>
           <div className="ml-auto flex items-center gap-3">
             <span className="font-mono hidden text-[11px] uppercase tracking-wider text-white/40 sm:block">MUMUS Staff Portal</span>
-            <span className="grid h-9 w-9 place-items-center rounded-full bg-gold-400 text-sm font-bold text-navy-900">MP</span>
+            <Link to="/admin/account/profile" aria-label={`Edit profile for ${accountName}`} className="flex items-center gap-2 rounded-lg focus-visible:outline-2 focus-visible:outline-gold-400"><span className="hidden max-w-40 truncate text-sm font-medium text-white/80 sm:block">{accountName}</span><span className="grid h-9 w-9 place-items-center rounded-full bg-gold-400 text-sm font-bold text-navy-900">{accountInitials}</span></Link>
           </div>
         </header>
+        {needsName && loc.pathname !== "/admin/account/profile" && <div className="shrink-0 border-b border-gold-400/15 bg-gold-400/5 px-4 py-3 text-xs text-gold-200 sm:px-5 lg:px-8">Add your name so customers know who is helping them. <Link to="/admin/account/profile" className="font-semibold underline">Set up my profile</Link></div>}
         <main className={isMessagesPage ? "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden" : "min-w-0 flex-1 overflow-x-hidden px-4 py-6 sm:px-5 lg:px-8 lg:py-8"}>
           <Outlet />
         </main>
