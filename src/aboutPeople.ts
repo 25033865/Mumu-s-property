@@ -29,7 +29,7 @@ export const websiteCreator: AboutPerson = {
   name: "Mudau Rotondwa Agriment",
   role: "Website Creator",
   image: "https://ihpbniqzqrrucnbzdnit.supabase.co/storage/v1/object/public/images/NDAAAA%20(2).PNG",
-  bio: "Mudau Rotondwa Agriment is the creator of the MUMUS website, combining thoughtful design and development to deliver an accessible digital experience for the business and its clients.",
+  bio: "Mudau Rotondwa Agriment is the creator of MUMUS PROPERTYS, combining thoughtful design and development to deliver an accessible digital experience for the business and its clients.",
   focus: ["Design & development", "Digital experience"],
   contacts: [
     { platform: "whatsapp", value: "+27646243837" },

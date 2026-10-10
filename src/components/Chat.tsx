@@ -11,11 +11,15 @@ export default function Chat({
   threadId,
   self,
   theme = "light",
+  canReply = true,
+  readOnlyReason = "This conversation is read only.",
   placeholder = "Type a message…",
 }: {
   threadId: string;
   self: Sender; // whose perspective — their messages align right
   theme?: "light" | "dark";
+  canReply?: boolean;
+  readOnlyReason?: string;
   placeholder?: string;
 }) {
   const { messages: confirmedMessages, upsertMessage, error: connectionError } = useThread(threadId);
@@ -71,7 +75,7 @@ export default function Chat({
   useEffect(() => { void supabase.auth.getUser().then(({ data }) => setSenderId(data.user?.id ?? null)); }, []);
 
   const deliver = async (message: OutgoingMessage) => {
-    if (!senderId || inFlight.current.has(message.id)) return;
+    if (!canReply || !senderId || inFlight.current.has(message.id)) return;
     inFlight.current.add(message.id);
     setSending(true);
     setOutgoing((current) => current.map((item) => item.id === message.id ? { ...item, status: "sending", error: undefined } : item));
@@ -88,7 +92,7 @@ export default function Chat({
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!senderId || sending || (!draft.trim() && files.length === 0)) return;
+    if (!canReply || !senderId || sending || (!draft.trim() && files.length === 0)) return;
     const message: OutgoingMessage = {
       id: crypto.randomUUID(), threadId, from: self, text: draft.trim() || files.map((file) => file.name).join(", "),
       ts: Date.now(), attachments: [], readAt: null, status: "sending", files, fileIds: files.map(() => crypto.randomUUID()),
@@ -102,13 +106,14 @@ export default function Chat({
   };
 
   const saveEdit = async () => {
-    if (!editingId || !editingText.trim()) return;
+    if (!canReply || !editingId || !editingText.trim()) return;
     const { error } = await editMessage(editingId, editingText);
     if (error) setMessageError(error.message);
     else { setEditingId(null); setEditingText(""); }
   };
 
   const removeMessage = async (id: string) => {
+    if (!canReply) return;
     setDeletingId(id);
     setMessageError("");
     const { error } = await deleteMessage(id);
@@ -138,7 +143,7 @@ export default function Chat({
           return (
             <div key={m.id} data-message-id={m.id} className={`flex shrink-0 ${mine ? "justify-end" : "justify-start"}`}>
               <div className="min-w-0 max-w-[90%] [overflow-wrap:anywhere] sm:max-w-[78%]">
-                {editingId === m.id ? (
+                {canReply && editingId === m.id ? (
                   <div className="space-y-2">
                     <textarea value={editingText} onChange={(event) => setEditingText(event.target.value)} rows={3} className="w-full min-w-0 rounded-lg border border-gold-400/50 bg-white px-3 py-2 text-sm text-navy-900 outline-none" />
                     <div className="flex justify-end gap-2">
@@ -150,7 +155,7 @@ export default function Chat({
                   {displayText && <div>{displayText}</div>}
                   {m.attachments.length > 0 && <div className={`${displayText ? "mt-2 border-t border-white/15 pt-2" : ""} space-y-2`}>{m.attachments.map((attachment) => <AttachmentItem key={attachment.id} attachment={attachment} dark={dark} onPreview={setPreview} />)}</div>}
                 </div>}
-                {mine && (!m.status || m.status === "sent") && canModifyMessage(m) && editingId !== m.id && (
+                {canReply && mine && (!m.status || m.status === "sent") && canModifyMessage(m) && editingId !== m.id && (
                   <div className="mt-1 flex justify-end gap-2">
                     <button type="button" onClick={() => { setEditingId(m.id); setEditingText(m.text); setMessageError(""); }} className={`inline-flex min-h-11 items-center gap-1 px-2 text-xs sm:min-h-0 sm:px-0 sm:text-[10px] ${dark ? "text-white/45 hover:text-white" : "text-slate-ink/50 hover:text-navy-900"}`}><Pencil className="h-3 w-3" /> Edit</button>
                     <button type="button" onClick={() => { setDeleteCandidateId(m.id); setMessageError(""); }} className={`inline-flex min-h-11 items-center gap-1 px-2 text-xs sm:min-h-0 sm:px-0 sm:text-[10px] ${dark ? "text-white/45 hover:text-rose-300" : "text-slate-ink/50 hover:text-rose-600"}`}><Trash2 className="h-3 w-3" /> Delete</button>
@@ -179,7 +184,8 @@ export default function Chat({
           {files.map((file, index) => <span key={`${file.name}-${index}`} className="inline-flex max-w-full items-center gap-1 rounded-md bg-black/10 px-2 py-1"><span className="max-w-48 truncate">{file.name}</span><button type="button" onClick={() => setFiles((current) => current.filter((_, fileIndex) => fileIndex !== index))} aria-label={`Remove ${file.name}`}><X className="h-3 w-3" /></button></span>)}
         </div>
       </div>}
-      <form onSubmit={(event) => void submit(event)} className={`flex min-w-0 shrink-0 items-center gap-2 border-t p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] ${dark ? "border-white/10" : "border-hairline"}`}>
+      {!canReply && <p role="status" className={`shrink-0 border-t px-4 py-3 text-sm ${dark ? "border-white/10 text-white/60" : "border-hairline text-slate-ink"}`}>{readOnlyReason}</p>}
+      <form onSubmit={(event) => void submit(event)} className={`flex min-w-0 shrink-0 items-center gap-2 border-t p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] ${!canReply ? "hidden" : ""} ${dark ? "border-white/10" : "border-hairline"}`}>
         <button type="button" onClick={() => fileInputRef.current?.click()} className={`grid h-11 w-11 shrink-0 place-items-center rounded-lg border ${dark ? "border-white/10 text-white/60 hover:text-white" : "border-hairline text-slate-ink/70 hover:text-navy-900"}`} title="Attach files" aria-label="Attach files">
           <Paperclip className="h-4 w-4" />
         </button>

@@ -4,6 +4,7 @@ import { MessageSquare, ArrowLeft } from "lucide-react";
 import Chat from "../../components/Chat";
 import { formatTime, useConversationSummaries, type Thread } from "../../messaging";
 import { supabase } from "../../lib/supabaseClient";
+import useConversationOwnership from "../../conversationOwnership";
 
 export default function AdminMessages() {
   const [threads, setThreads] = useState<Thread[]>([]);
@@ -11,9 +12,16 @@ export default function AdminMessages() {
   const { summaries: previews, error: summaryError } = useConversationSummaries("admin");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const support = useConversationOwnership();
+  const [handoff, setHandoff] = useState("");
   const [searchParams, setSearchParams] = useSearchParams();
   useEffect(() => {
-    void supabase.from("message_threads").select("id, client_id").then(async ({ data, error: threadError }) => {
+    let mounted = true;
+    let sequence = 0;
+    const load = async () => {
+      const request = ++sequence;
+      const { data, error: threadError } = await supabase.from("message_threads").select("id, client_id");
+      if (!mounted || request !== sequence) return;
       if (threadError) {
         setError(threadError.message);
         setLoading(false);
@@ -23,7 +31,8 @@ export default function AdminMessages() {
       const { data: profiles, error: profileError } = clientIds.length
         ? await supabase.from("profiles").select("user_id, first_name, last_name, company_name").in("user_id", clientIds)
         : { data: [], error: null };
-      if (profileError) setError(profileError.message);
+      if (!mounted || request !== sequence) return;
+      setError(profileError?.message ?? "");
       const profileByUser = new Map((profiles ?? []).map((profile) => [profile.user_id, profile]));
       const next = (data ?? []).map((thread) => {
         const profile = profileByUser.get(thread.client_id);
@@ -32,11 +41,20 @@ export default function AdminMessages() {
       });
       setThreads(next);
       const requestedClientId = searchParams.get("client");
-      setActive(next.find((thread) => thread.userId === requestedClientId)?.id ?? null);
+      setActive((current) => requestedClientId ? next.find((thread) => thread.userId === requestedClientId)?.id ?? null : next.some((thread) => thread.id === current) ? current : null);
       setLoading(false);
-    });
+    };
+    const refresh = () => { void load().catch(() => { if (mounted) { setError("Could not load conversations. Refresh to retry."); setLoading(false); } }); };
+    const channel = supabase.channel("admin-thread-list").on("postgres_changes", { event: "*", schema: "public", table: "message_threads" }, refresh).subscribe((status) => { if (status === "SUBSCRIBED") refresh(); });
+    refresh();
+    const poll = window.setInterval(refresh, 10000);
+    window.addEventListener("focus", refresh);
+    return () => { mounted = false; clearInterval(poll); window.removeEventListener("focus", refresh); void supabase.removeChannel(channel); };
   }, [searchParams]);
   const activeThread = threads.find((thread) => thread.id === active);
+  const assignment = activeThread ? support.ownership[activeThread.id] : undefined;
+  const ownsChat = support.ready && !!support.userId && assignment?.assigned_admin_id === support.userId && assignment.status === "open";
+  useEffect(() => { setHandoff(""); }, [active]);
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col text-white">
@@ -46,6 +64,7 @@ export default function AdminMessages() {
       </div>}
 
       {(error || summaryError) && <p role="alert" className="shrink-0 px-4 py-3 text-sm text-rose-300">{error || summaryError}</p>}
+      {support.error && <p role="alert" className="shrink-0 px-4 py-3 text-sm text-rose-300">{support.error} <button type="button" onClick={support.retry} className="underline">Retry</button></p>}
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         {/* conversation list */}
@@ -75,14 +94,16 @@ export default function AdminMessages() {
                     </div>
                     <div className="mt-0.5 truncate text-[12px] text-white/60">{t.company}</div>
                     <div className="mt-1 truncate text-[12px] text-white/45">
-                      {last ? `${last.from === "admin" ? "You: " : ""}${last.text}` : "No messages yet"}
+                      {last ? `${last.from === "admin" ? "Support: " : ""}${last.text}` : "No messages yet"}
                     </div>
+                    <div className={`mt-2 text-[11px] font-semibold ${support.ownership[t.id]?.assigned_admin_id === support.userId && support.userId ? "text-gold-300" : "text-white/50"}`}>{support.label(t.id)}</div>
                   </div>
                   {!!last?.unread && <span aria-label={`${last.unread} unread messages`} className="ml-auto grid h-6 min-w-6 shrink-0 place-items-center self-center rounded-full bg-gold-400 px-1 text-[11px] font-bold text-navy-900">{last.unread > 99 ? "99+" : last.unread}</span>}
                 </button>
               );
             })}
           </div>
+
         </div>}
 
         {/* chat */}
@@ -99,7 +120,23 @@ export default function AdminMessages() {
               <div className="truncate text-[12px] text-white/45">{activeThread?.company ?? (activeThread ? "Company not provided" : "No client conversations yet")}</div>
             </div>
           </div>
-          {activeThread && <Chat key={activeThread.id} threadId={activeThread.id} self="admin" theme="dark" placeholder="Reply to this client…" />}
+          <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-white/8 px-4 py-3">
+            <span role="status" className="mr-auto text-xs font-semibold text-gold-300">{support.label(activeThread.id)}</span>
+            {support.ready && assignment && <>
+              {assignment.status === "resolved" ? <button type="button" disabled={support.busy} onClick={() => void support.act(activeThread.id, "reopen")} className="rounded-lg border border-white/15 px-3 py-2 text-xs font-semibold disabled:opacity-40">Reopen conversation</button>
+                : !assignment.assigned_admin_id ? <button type="button" disabled={support.busy} onClick={() => void support.act(activeThread.id, "claim")} className="rounded-lg bg-gold-400 px-3 py-2 text-xs font-semibold text-navy-900 disabled:opacity-40">Take conversation</button>
+                : ownsChat && <>
+                  <select aria-label="Transfer conversation to admin" value={handoff} onChange={(event) => setHandoff(event.target.value)} disabled={support.busy} className="max-w-44 rounded-lg border border-white/15 bg-navy-900 px-2 py-2 text-xs">
+                    <option value="">Transfer to...</option>
+                    {support.admins.filter((admin) => admin.user_id !== support.userId).map((admin) => <option key={admin.user_id} value={admin.user_id}>{admin.name}</option>)}
+                  </select>
+                  {handoff && <button type="button" disabled={support.busy} onClick={() => void support.act(activeThread.id, "transfer", handoff)} className="rounded-lg border border-white/15 px-3 py-2 text-xs disabled:opacity-40">Transfer</button>}
+                  <button type="button" disabled={support.busy} onClick={() => void support.act(activeThread.id, "release")} className="rounded-lg border border-white/15 px-3 py-2 text-xs disabled:opacity-40">Release</button>
+                  <button type="button" disabled={support.busy} onClick={() => void support.act(activeThread.id, "resolve")} className="rounded-lg bg-emerald-500/20 px-3 py-2 text-xs font-semibold text-emerald-300 disabled:opacity-40">Resolve</button>
+                </>}
+            </>}
+          </div>
+          <Chat key={activeThread.id} threadId={activeThread.id} self="admin" theme="dark" canReply={ownsChat && !support.busy} readOnlyReason={!support.ready ? "Checking conversation ownership before you can reply." : assignment?.status === "resolved" ? "This conversation is resolved. Reopen it to continue." : !assignment?.assigned_admin_id ? "Take this conversation to reply to the customer." : `${support.label(activeThread.id)}. Only the assigned admin can reply.`} placeholder="Reply to this client..." />
         </div>}
       </div>
     </div>
